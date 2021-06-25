@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"mealswipe.app/mealswipe/core"
-	"mealswipe.app/mealswipe/mealswipepb"
+	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func HandleMessage(userState *core.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {

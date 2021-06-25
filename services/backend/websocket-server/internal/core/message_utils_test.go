@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	"mealswipe.app/mealswipe/mealswipepb"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func HasCreateMessageTest(t *testing.T) {

@@ -1,6 +1,6 @@
 package core
 
-import "mealswipe.app/mealswipe/mealswipepb"
+import "mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 
 func HasCreateMessage(genericMessage *mealswipepb.WebsocketMessage) bool {
 	return (*genericMessage).GetCreateMessage() != nil

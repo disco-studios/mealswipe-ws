@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"mealswipe.app/mealswipe/business"
-	"mealswipe.app/mealswipe/core"
-	"mealswipe.app/mealswipe/mealswipepb"
+	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func HandleMessageStart(userState *core.UserState, startMessage *mealswipepb.StartMessage) (err error) {

@@ -1,8 +1,8 @@
 package validators
 
 import (
-	"mealswipe.app/mealswipe/core"
-	"mealswipe.app/mealswipe/mealswipepb"
+	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func ValidateMessage(userState *core.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {

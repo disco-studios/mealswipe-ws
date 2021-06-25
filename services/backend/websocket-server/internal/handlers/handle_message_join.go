@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"mealswipe.app/mealswipe/business"
-	"mealswipe.app/mealswipe/core"
-	"mealswipe.app/mealswipe/mealswipepb"
+	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func HandleMessageJoin(userState *core.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {

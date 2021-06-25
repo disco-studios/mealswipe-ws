@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-	"mealswipe.app/mealswipe/business"
-	"mealswipe.app/mealswipe/mealswipepb"
+	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 type UserState struct {

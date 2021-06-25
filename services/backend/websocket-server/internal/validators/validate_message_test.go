@@ -4,8 +4,8 @@ import (
 	"log"
 	"testing"
 
-	"mealswipe.app/mealswipe/core"
-	"mealswipe.app/mealswipe/mealswipepb"
+	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 // TODO Make sure errors are of right type

@@ -10,23 +10,21 @@ ENV GO111MODULE=on \
 WORKDIR /build
 
 # Copy and download dependency using go mod
-COPY ./../.. .
-RUN file="$(ls -1 .)" && echo $file
-RUN apk update && apk add bash
+COPY . .
 # TODO Should probably build protocolbuffer here
-# RUN go mod download
+RUN go mod download
 
 # # Build the application
-# RUN go build -o main ./cmd/websocket-server
+RUN go build -o main ./cmd/websocket-server
 
 # # Move to /dist directory as the place for resulting binary folder
-# WORKDIR /dist
+WORKDIR /dist
 
 # # Copy binary from build to main folder
-# RUN cp /build/main .
+RUN cp /build/main .
 
 # # Export necessary port
-# EXPOSE 8080
+EXPOSE 8080
 
 # # Command to run when starting the container
-# CMD ["/dist/main"]
+CMD ["/dist/main"]

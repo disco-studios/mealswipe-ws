@@ -7,10 +7,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
-	"mealswipe.app/mealswipe/core"
-	"mealswipe.app/mealswipe/handlers"
-	"mealswipe.app/mealswipe/mealswipepb"
-	"mealswipe.app/mealswipe/validators"
+	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/handlers"
+	"mealswipe.app/mealswipe/internal/validators"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 var websocketUpgrader = websocket.Upgrader{} // use default options

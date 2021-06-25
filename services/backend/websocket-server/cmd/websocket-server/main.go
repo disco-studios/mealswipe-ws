@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"mealswipe.app/mealswipe/business"
-	"mealswipe.app/mealswipe/websockets"
+	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/internal/websockets"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
