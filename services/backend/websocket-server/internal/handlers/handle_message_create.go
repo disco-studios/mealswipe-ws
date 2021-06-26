@@ -13,12 +13,12 @@ func HandleMessageCreate(userState *core.UserState, createMessage *mealswipepb.C
 	}
 
 	// Join the user into the new session
+	userState.Nickname = createMessage.Nickname
 	err = core.UserJoinSessionById(userState, sessionId, code)
 	if err != nil {
 		return
 	}
 
-	userState.Nickname = createMessage.Nickname
 	userState.HostState = core.HostState_HOSTING
 
 	// Send the lobby info to the user
@@ -26,7 +26,7 @@ func HandleMessageCreate(userState *core.UserState, createMessage *mealswipepb.C
 		LobbyInfoMessage: &mealswipepb.LobbyInfoMessage{
 			Code:     code,
 			Nickname: userState.Nickname,
-			Users:    []string{"Currently", "Not", "Supported"}, // TODO Impl
+			Users:    []string{userState.Nickname},
 		},
 	})
 	return

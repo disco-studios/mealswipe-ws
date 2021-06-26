@@ -24,3 +24,13 @@ func DbGetActiveUsers(sessionId string) (activeUsers []string, err error) {
 
 	return
 }
+
+func DbGetNicknames(sessionId string) (nicknames map[string]string, err error) {
+	hGetAll := redisClient.HGetAll(context.TODO(), "session."+sessionId+".users.nicknames")
+	if err = hGetAll.Err(); err != nil {
+		return
+	}
+
+	nicknames = hGetAll.Val()
+	return
+}
