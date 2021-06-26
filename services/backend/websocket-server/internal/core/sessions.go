@@ -21,15 +21,28 @@ func CreateSession(userState *UserState) (sessionID string, code string, err err
 }
 
 func CheckWin(userState *UserState) (err error) {
-	win, _, err := business.DbCheckWin(userState.JoinedSessionId)
+	win, winIndex, err := business.DbCheckWin(userState.JoinedSessionId)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
 	if win {
+		var loc *mealswipepb.Location
+		loc, err = business.DbGrabLocationFromInd(userState.JoinedSessionId, int64(winIndex))
+		if err != nil {
+			return
+		}
+
 		err = userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
-			GameWinMessage: &mealswipepb.GameWinMessage{},
+			GameWinMessage: &mealswipepb.GameWinMessage{
+				Locations: []*mealswipepb.WinningLocation{
+					{
+						Location: loc,
+						Votes:    0, // TODO: Impl
+					},
+				},
+			},
 		})
 		if err != nil {
 			return
