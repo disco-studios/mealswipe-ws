@@ -2,23 +2,22 @@ package business
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
-func DbStartSession(code string, sessionId string, lat float32, lng float32) (err error) {
+func DbStartSession(code string, sessionId string, lat float64, lng float64) (err error) {
 	pipe := redisClient.Pipeline()
 
 	sessionKey := "session." + sessionId
 	timeToLive := time.Hour * 24
 
-	venues, err := GrabLocations(lat, lng)
+	venueIds, _, err := GrabLocations(lat, lng)
 	if err != nil {
 		return
 	}
-
-	var venueIds []string
-	for _, venue := range venues {
-		venueIds = append(venueIds, venue.ID)
+	if len(venueIds) == 0 {
+		return errors.New("found no venues for loc")
 	}
 
 	pipe.Del(context.TODO(), "code."+code)

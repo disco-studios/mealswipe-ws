@@ -2,6 +2,7 @@ package websockets
 
 import (
 	"bytes"
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -55,19 +56,13 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 func pubsubPump(userState *core.UserState, messageQueue <-chan string) {
 	for message := range messageQueue {
 		log.Println("Redis message -> '" + message + "'")
-		if message == "start" {
-			log.Println("\t-> Start")
-			userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
-				GameStartedMessage: &mealswipepb.GameStartedMessage{},
-			})
-		}
-		if message == "win" {
-			log.Println("\t-> Win")
-			userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
-				GameWinMessage: &mealswipepb.GameWinMessage{
-					PartialWin: false,
-				},
-			})
+
+		websocketResponse := &mealswipepb.WebsocketResponse{}
+		err := json.Unmarshal([]byte(message), websocketResponse)
+		if err != nil {
+			log.Println("pubsub pump:", err)
+		} else {
+			userState.SendWebsocketMessage(websocketResponse)
 		}
 	}
 	log.Println("Pubsub cleaned up")

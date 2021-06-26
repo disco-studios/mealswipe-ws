@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 const MAX_CODE_ATTEMPTS int = 6 // 1-(1000000/(21^6))^6 = 0.999999999, aka almost certain with 1mil codes/day
@@ -27,8 +28,12 @@ func CheckWin(userState *UserState) (err error) {
 	}
 
 	if win {
-		log.Println("CheckWin win")
-		userState.SendPubsubMessage("win")
+		err = userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
+			GameWinMessage: &mealswipepb.GameWinMessage{},
+		})
+		if err != nil {
+			return
+		}
 	}
 	return
 }

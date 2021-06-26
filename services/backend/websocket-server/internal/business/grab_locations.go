@@ -1,41 +1,29 @@
 package business
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
+	"context"
+	"log"
+
+	"github.com/go-redis/redis/v8"
 )
 
-type FS_Venue struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
+func GrabLocations(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
+	// TODO Replace with GeoSearch when redis client supports it
+	geoRad := redisClient.GeoRadius(context.TODO(), "locindex.restaurants", lng, lat, &redis.GeoRadiusQuery{
+		Radius:   2,
+		Unit:     "mi",
+		WithDist: true,
+	})
 
-type FS_Venues_Stepper struct {
-	Venues []*FS_Venue `json:"venues"`
-}
-
-type FS_Venues_Result struct {
-	Venues FS_Venues_Stepper `json:"response"`
-}
-
-func GrabLocations(lat float32, lng float32) (venues []*FS_Venue, err error) {
-	resp, err := http.Get(fmt.Sprintf("https://api.foursquare.com/v2/venues/search?client_id=UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN&client_secret=3QD0PJNSFOJTWWLZCGO3ERHCTQEVA4L11LSEFFDLAOKFSDVR&v=20210620&ll=%f,%f&intent=browse&radius=1000&limit=50&categoryId=4bf58dd8d48988d16e941735", lat, lng))
-	if err != nil {
-		return nil, err
+	if err = geoRad.Err(); err != nil {
+		return
 	}
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+	log.Println(lng, lat, len(geoRad.Val()))
+	for _, loc := range geoRad.Val() {
+		fsq_ids = append(fsq_ids, loc.Name)
+		distances = append(distances, loc.Dist)
 	}
-
-	var res FS_Venues_Result
-	err = json.Unmarshal(bodyBytes, &res)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.Venues.Venues, nil
+	log.Println(fsq_ids)
+	return
 }

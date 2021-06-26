@@ -12,7 +12,9 @@ func HandleMessageStart(userState *core.UserState, startMessage *mealswipepb.Sta
 		return
 	}
 
-	err = userState.SendPubsubMessage("start")
+	err = userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
+		GameStartedMessage: &mealswipepb.GameStartedMessage{},
+	})
 	if err != nil {
 		return
 	}

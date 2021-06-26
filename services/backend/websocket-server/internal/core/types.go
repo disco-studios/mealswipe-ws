@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/go-redis/redis/v8"
@@ -29,6 +30,20 @@ func (userState UserState) SendPubsubMessage(message string) (err error) {
 		return errors.New("not currently in a session")
 	}
 	return business.PubsubWrite("session."+userState.JoinedSessionId, message)
+}
+
+func (userState UserState) PubsubWebsocketResponse(websocketResponse *mealswipepb.WebsocketResponse) (err error) {
+	var bytes []byte
+	bytes, err = json.Marshal(websocketResponse)
+	if err != nil {
+		return
+	}
+
+	err = userState.SendPubsubMessage(string(bytes))
+	if err != nil {
+		return
+	}
+	return
 }
 
 func CreateUserState() *UserState {
