@@ -4,6 +4,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -60,7 +61,7 @@ func main() {
 		// Connect to host websocket
 		wsCon, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 		if err != nil {
-			log.Fatal("dial"+string(socketNum)+":", err)
+			log.Fatal("dial"+fmt.Sprint(socketNum)+":", err)
 		}
 		defer wsCon.Close()
 
@@ -71,17 +72,20 @@ func main() {
 			for {
 				_, messageBytes, err := wsCon.ReadMessage()
 				if err != nil {
-					log.Println("read"+string(socketNum)+":", err)
+					log.Println("read"+fmt.Sprint(socketNum)+":", err)
 					return
 				}
 				genericMessage := &mealswipepb.WebsocketResponse{}
 				if err := proto.Unmarshal(messageBytes, genericMessage); err != nil {
-					log.Println("read decode: ", err)
+					log.Println(fmt.Sprint(socketNum)+"read decode: ", err)
 					return
 				}
 				if genericMessage.GetLobbyInfoMessage() != nil {
 					lobbyCode = genericMessage.GetLobbyInfoMessage().Code
-					log.Println("Code:", lobbyCode)
+					log.Println("("+fmt.Sprint(socketNum)+") Code:", lobbyCode)
+				}
+				if genericMessage.GetGameStartedMessage() != nil {
+					log.Println("(" + fmt.Sprint(socketNum) + ") Game started!")
 				}
 				log.Println(genericMessage)
 			}
@@ -118,6 +122,46 @@ func main() {
 		StartMessage: &mealswipepb.StartMessage{
 			Lat: 39.9533952,
 			Lng: -75.1882669,
+		},
+	})
+
+	// User 0 votes
+	write_message_delay(0, &mealswipepb.WebsocketMessage{
+		VoteMessage: &mealswipepb.VoteMessage{
+			Index: 0,
+			Vote:  true,
+		},
+	})
+	write_message_delay(0, &mealswipepb.WebsocketMessage{
+		VoteMessage: &mealswipepb.VoteMessage{
+			Index: 1,
+			Vote:  true,
+		},
+	})
+	write_message_delay(0, &mealswipepb.WebsocketMessage{
+		VoteMessage: &mealswipepb.VoteMessage{
+			Index: 2,
+			Vote:  true,
+		},
+	})
+
+	// User 1 votes
+	write_message_delay(1, &mealswipepb.WebsocketMessage{
+		VoteMessage: &mealswipepb.VoteMessage{
+			Index: 0,
+			Vote:  false,
+		},
+	})
+	write_message_delay(1, &mealswipepb.WebsocketMessage{
+		VoteMessage: &mealswipepb.VoteMessage{
+			Index: 1,
+			Vote:  false,
+		},
+	})
+	write_message_delay(1, &mealswipepb.WebsocketMessage{
+		VoteMessage: &mealswipepb.VoteMessage{
+			Index: 2,
+			Vote:  true,
 		},
 	})
 

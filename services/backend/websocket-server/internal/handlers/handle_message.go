@@ -11,10 +11,9 @@ func HandleMessage(userState *core.UserState, genericMessage *mealswipepb.Websoc
 	} else if core.HasJoinMessage(genericMessage) {
 		return HandleMessageJoin(userState, genericMessage.GetJoinMessage())
 	} else if core.HasStartMessage(genericMessage) {
-		return HandleMessageStart(userState, genericMessage.GetStartMessage()) // TODO Add message response
+		return HandleMessageStart(userState, genericMessage.GetStartMessage())
 	} else if core.HasVoteMessage(genericMessage) {
-		// TODO: Next thing to do here: Implement voting and win conditions
-		return HandleMessageVote(userState, genericMessage.GetVoteMessage()) // TODO Add message response
+		return HandleMessageVote(userState, genericMessage.GetVoteMessage())
 	} else {
 		return nil // TODO No message provided by ther user!! Figure out what to do here
 	}

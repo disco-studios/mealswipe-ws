@@ -19,6 +19,20 @@ func CreateSession(userState *UserState) (sessionID string, code string, err err
 	return
 }
 
+func CheckWin(userState *UserState) (err error) {
+	win, _, err := business.DbCheckWin(userState.JoinedSessionId)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	if win {
+		log.Println("CheckWin win")
+		userState.SendPubsubMessage("win")
+	}
+	return
+}
+
 func reserveSessionCode(sessionId string) (code string, err error) {
 	for i := 0; i < MAX_CODE_ATTEMPTS; i++ {
 		code = EncodeRawCode(GenerateRandomRawCode())

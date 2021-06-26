@@ -35,7 +35,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	userState := core.CreateUserState()
 	defer ensureCleanup(userState)
 	defer close(userState.PubsubChannel)
-	go pubsubPump(*userState, userState.PubsubChannel)
+	go pubsubPump(userState, userState.PubsubChannel)
 	log.Println("New user " + userState.UserId)
 
 	// Create a write channel to send messages to our websocket
@@ -52,11 +52,22 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO Automatically clean up pubsub
 }
 
-func pubsubPump(userState core.UserState, messageQueue <-chan string) {
+func pubsubPump(userState *core.UserState, messageQueue <-chan string) {
 	for message := range messageQueue {
-		log.Println("Redis message -> ", message)
+		log.Println("Redis message -> '" + message + "'")
 		if message == "start" {
-			// TODO Tell users the game started
+			log.Println("\t-> Start")
+			userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
+				GameStartedMessage: &mealswipepb.GameStartedMessage{},
+			})
+		}
+		if message == "win" {
+			log.Println("\t-> Win")
+			userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
+				GameWinMessage: &mealswipepb.GameWinMessage{
+					PartialWin: false,
+				},
+			})
 		}
 	}
 	log.Println("Pubsub cleaned up")
