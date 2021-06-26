@@ -43,9 +43,6 @@ func reserveSessionCode(sessionId string) (code string, err error) {
 		code = EncodeRawCode(GenerateRandomRawCode())
 		err = business.ReserveCode(sessionId, code)
 		if err == nil {
-			if i > 0 {
-				log.Println(i)
-			}
 			return
 		}
 	}

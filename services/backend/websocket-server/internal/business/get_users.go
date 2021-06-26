@@ -3,7 +3,6 @@ package business
 import (
 	"context"
 	"errors"
-	"log"
 )
 
 func DbGetActiveUsers(sessionId string) (activeUsers []string, err error) {
@@ -13,14 +12,13 @@ func DbGetActiveUsers(sessionId string) (activeUsers []string, err error) {
 	}
 
 	for userId, active := range hGetAll.Val() {
-		log.Println(userId, "`"+active+"`")
 		if active == "1" {
 			activeUsers = append(activeUsers, userId)
 		}
 	}
 
 	if len(activeUsers) == 0 {
-		err = errors.New("Session has no active users!")
+		err = errors.New("session has no active users")
 		return
 	}
 

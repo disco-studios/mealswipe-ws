@@ -25,6 +25,7 @@ func DbUserJoinSessionById(userId string, sessionId string, nickname string, gen
 	pipe.SAdd(context.TODO(), sessionKey+".users", userId)
 	pipe.SetNX(context.TODO(), "user."+userId+".nickname", nickname, timeToLive)
 	pipe.HSet(context.TODO(), sessionKey+".users.active", userId, true)
+	pipe.HSet(context.TODO(), sessionKey+".users.voteind", userId, 0)
 	pipe.SetBit(context.TODO(), "user."+userId+".votes", 0, 0)
 	pipe.Expire(context.TODO(), "user."+userId+".votes", timeToLive)
 

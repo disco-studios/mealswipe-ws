@@ -63,6 +63,12 @@ func pubsubPump(userState *core.UserState, messageQueue <-chan string) {
 			log.Println("pubsub pump:", err)
 		} else {
 			userState.SendWebsocketMessage(websocketResponse)
+			if websocketResponse.GetGameStartedMessage() != nil {
+				err := core.SendNextLocToUser(userState)
+				if err != nil {
+					log.Println(err)
+				}
+			}
 		}
 	}
 	log.Println("Pubsub cleaned up")

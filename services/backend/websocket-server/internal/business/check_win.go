@@ -2,7 +2,6 @@ package business
 
 import (
 	"context"
-	"log"
 )
 
 func DbCheckWin(sessionId string) (win bool, winningIndex int64, err error) {
@@ -11,12 +10,10 @@ func DbCheckWin(sessionId string) (win bool, winningIndex int64, err error) {
 		return
 	}
 
-	log.Println("Active", activeUsers)
 	var voteKeys []string
 	for _, userId := range activeUsers {
 		voteKeys = append(voteKeys, "user."+userId+".votes")
 	}
-	log.Println("Vote keys", voteKeys)
 
 	pipe := redisClient.Pipeline()
 

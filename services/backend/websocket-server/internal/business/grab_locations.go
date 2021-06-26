@@ -2,7 +2,6 @@ package business
 
 import (
 	"context"
-	"log"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -19,11 +18,9 @@ func GrabLocations(lat float64, lng float64) (fsq_ids []string, distances []floa
 		return
 	}
 
-	log.Println(lng, lat, len(geoRad.Val()))
 	for _, loc := range geoRad.Val() {
 		fsq_ids = append(fsq_ids, loc.Name)
 		distances = append(distances, loc.Dist)
 	}
-	log.Println(fsq_ids)
 	return
 }
