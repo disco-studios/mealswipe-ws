@@ -16,6 +16,20 @@ func (e *InvalidHostStateError) Error() string {
 	)
 }
 
+type MessageValidationError struct {
+	MessageType   string
+	Clarification string
+}
+
+func (e *MessageValidationError) Error() string {
+	return fmt.Sprint(
+		"validation error: ",
+		e.MessageType,
+		": ",
+		e.Clarification,
+	)
+}
+
 type UnknownWebsocketMessage struct {
 }
 
