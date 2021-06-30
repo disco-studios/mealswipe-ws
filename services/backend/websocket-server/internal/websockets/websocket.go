@@ -8,10 +8,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
+	"mealswipe.app/mealswipe/internal/core/handlers"
 	"mealswipe.app/mealswipe/internal/core/locations"
 	"mealswipe.app/mealswipe/internal/core/users"
-	"mealswipe.app/mealswipe/internal/handlers"
-	"mealswipe.app/mealswipe/internal/validators"
+	"mealswipe.app/mealswipe/internal/core/validators"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 

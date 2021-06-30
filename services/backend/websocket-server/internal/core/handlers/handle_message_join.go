@@ -1,9 +1,6 @@
 package handlers
 
 import (
-	"log"
-
-	"mealswipe.app/mealswipe/internal/business"
 	"mealswipe.app/mealswipe/internal/common/constants"
 	"mealswipe.app/mealswipe/internal/core/sessions"
 	"mealswipe.app/mealswipe/internal/core/users"
@@ -13,7 +10,7 @@ import (
 func HandleMessageJoin(userState *users.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
 
 	// Get the session ID for the given code
-	sessionId, err := business.DbSessionGetIdFromCode(joinMessage.Code)
+	sessionId, err := sessions.GetIdFromCode(joinMessage.Code)
 	if err != nil {
 		return
 	}
@@ -27,21 +24,7 @@ func HandleMessageJoin(userState *users.UserState, joinMessage *mealswipepb.Join
 	userState.HostState = constants.HostState_JOINING
 
 	// Send the lobby info to the user
-	activeUsers, err := business.DbSessionGetActiveUsers(userState.JoinedSessionId)
-	if err != nil {
-		return
-	}
-
-	nicknames, err := business.DbSessionGetNicknames(userState.JoinedSessionId)
-	if err != nil {
-		return
-	}
-	log.Println(nicknames)
-
-	var inLobbyNicknames []string
-	for _, userId := range activeUsers {
-		inLobbyNicknames = append(inLobbyNicknames, nicknames[userId])
-	}
+	inLobbyNicknames, err := sessions.GetActiveNicknames(userState.JoinedSessionId)
 
 	// Broadcast user join
 	userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{

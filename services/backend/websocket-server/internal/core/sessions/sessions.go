@@ -19,6 +19,10 @@ func Create(userState *users.UserState) (sessionID string, code string, err erro
 	return
 }
 
+func Start(code string, sessionId string, lat float64, lng float64) (err error) {
+	return business.DbSessionStart(code, sessionId, lat, lng)
+}
+
 func reserveSessionCode(sessionId string) (code string, err error) {
 	for i := 0; i < MAX_CODE_ATTEMPTS; i++ {
 		code = codes.EncodeRaw(codes.GenerateRandomRaw())
@@ -41,4 +45,16 @@ func JoinById(userState *users.UserState, sessionId string, code string) (err er
 	userState.JoinedSessionCode = code
 
 	return
+}
+
+func GetIdFromCode(code string) (sessionId string, err error) {
+	return business.DbSessionGetIdFromCode(code)
+}
+
+func GetActiveUsers(sessionId string) (activeUsers []string, err error) {
+	return business.DbSessionGetActiveUsers(sessionId)
+}
+
+func GetActiveNicknames(sessionId string) (activeNicknames []string, err error) {
+	return business.DbSessionGetActiveNicknames(sessionId)
 }

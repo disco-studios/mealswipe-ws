@@ -112,12 +112,24 @@ func DbSessionGetActiveUsers(sessionId string) (activeUsers []string, err error)
 	return
 }
 
-func DbSessionGetNicknames(sessionId string) (nicknames map[string]string, err error) {
+func DbSessionGetActiveNicknames(sessionId string) (activeNicknames []string, err error) {
+	activeUsers, err := DbSessionGetActiveUsers(sessionId)
+	if err != nil {
+		return
+	}
+
 	hGetAll := redisClient.HGetAll(context.TODO(), "session."+sessionId+".users.nicknames")
 	if err = hGetAll.Err(); err != nil {
 		return
 	}
 
-	nicknames = hGetAll.Val()
+	nicknamesMap := hGetAll.Val()
+	if err != nil {
+		return
+	}
+
+	for _, userId := range activeUsers {
+		activeNicknames = append(activeNicknames, nicknamesMap[userId])
+	}
 	return
 }
