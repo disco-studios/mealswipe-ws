@@ -38,66 +38,10 @@ func TestValidateCreateMessage(t *testing.T) {
 		}
 	})
 
-	t.Run("Lead space invalid", func(t *testing.T) {
+	t.Run("Invalid nickname", func(t *testing.T) {
 		createMessage.Nickname = " Cam the Man"
 		if err := ValidateMessageCreate(userState, createMessage); err == nil {
 			t.FailNow()
-		}
-	})
-
-	t.Run("Trail space invalid", func(t *testing.T) {
-		createMessage.Nickname = "Cam the Man "
-		if err := ValidateMessageCreate(userState, createMessage); err == nil {
-			t.FailNow()
-		}
-	})
-
-	t.Run("NonAlphanumeric Invalid", func(t *testing.T) {
-		createMessage.Nickname = "C@m the Man "
-		if err := ValidateMessageCreate(userState, createMessage); err == nil {
-			t.FailNow()
-		}
-	})
-
-	t.Run("More than 2 spaces in a row invalid", func(t *testing.T) {
-		createMessage.Nickname = "Cam  the Man "
-		if err := ValidateMessageCreate(userState, createMessage); err == nil {
-			t.FailNow()
-		}
-	})
-
-	t.Run("Using other whitespace invalid", func(t *testing.T) {
-		createMessage.Nickname = "Cam\tthe Man "
-		if err := ValidateMessageCreate(userState, createMessage); err == nil {
-			t.FailNow()
-		}
-	})
-
-	t.Run("Too long invalid", func(t *testing.T) {
-		createMessage.Nickname = "Cam the Mannnnnnnnnnnn"
-		if err := ValidateMessageCreate(userState, createMessage); err == nil {
-			t.FailNow()
-		}
-	})
-
-	t.Run("Empty invalid", func(t *testing.T) {
-		createMessage.Nickname = ""
-		if err := ValidateMessageCreate(userState, createMessage); err == nil {
-			t.FailNow()
-		}
-	})
-
-	t.Run("One char valid", func(t *testing.T) {
-		createMessage.Nickname = "a"
-		if err := ValidateMessageCreate(userState, createMessage); err != nil {
-			log.Fatal(err)
-		}
-	})
-
-	t.Run("Max length valid", func(t *testing.T) {
-		createMessage.Nickname = "aaaaaaaaaaaaaaaa"
-		if err := ValidateMessageCreate(userState, createMessage); err != nil {
-			log.Fatal(err)
 		}
 	})
 
