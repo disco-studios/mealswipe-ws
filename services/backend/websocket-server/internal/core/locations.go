@@ -6,12 +6,12 @@ import (
 )
 
 func GrabNextLocForUser(userState *UserState) (loc *mealswipepb.Location, err error) {
-	ind, err := business.DbGrabAndIncrVoteInd(userState.JoinedSessionId, userState.UserId)
+	ind, err := business.DbGameNextVoteInd(userState.JoinedSessionId, userState.UserId)
 	if err != nil {
 		return
 	}
 
-	loc, err = business.DbGrabLocationFromInd(userState.JoinedSessionId, int64(ind))
+	loc, err = business.DbLocationFromInd(userState.JoinedSessionId, int64(ind))
 	return
 }
 

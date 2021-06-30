@@ -29,7 +29,7 @@ func (userState UserState) SendPubsubMessage(message string) (err error) {
 	if userState.JoinedSessionId == "" {
 		return errors.New("not currently in a session")
 	}
-	return business.PubsubWrite("session."+userState.JoinedSessionId, message)
+	return business.DbPubsubWrite("session."+userState.JoinedSessionId, message)
 }
 
 func (userState UserState) PubsubWebsocketResponse(websocketResponse *mealswipepb.WebsocketResponse) (err error) {

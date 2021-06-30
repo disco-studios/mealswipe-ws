@@ -21,7 +21,7 @@ func CreateSession(userState *UserState) (sessionID string, code string, err err
 }
 
 func CheckWin(userState *UserState) (err error) {
-	win, winIndex, err := business.DbCheckWin(userState.JoinedSessionId)
+	win, winIndex, err := business.DbGameCheckWin(userState.JoinedSessionId)
 	if err != nil {
 		log.Println(err)
 		return
@@ -29,7 +29,7 @@ func CheckWin(userState *UserState) (err error) {
 
 	if win {
 		var loc *mealswipepb.Location
-		loc, err = business.DbGrabLocationFromInd(userState.JoinedSessionId, int64(winIndex))
+		loc, err = business.DbLocationFromInd(userState.JoinedSessionId, int64(winIndex))
 		if err != nil {
 			return
 		}
@@ -54,7 +54,7 @@ func CheckWin(userState *UserState) (err error) {
 func reserveSessionCode(sessionId string) (code string, err error) {
 	for i := 0; i < MAX_CODE_ATTEMPTS; i++ {
 		code = EncodeRawCode(GenerateRandomRawCode())
-		err = business.ReserveCode(sessionId, code)
+		err = business.DbReserveCode(sessionId, code)
 		if err == nil {
 			return
 		}

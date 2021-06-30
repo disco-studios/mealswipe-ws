@@ -6,10 +6,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-redis/redis/v8"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func DbGrabLocation(fsq_id string) (loc *mealswipepb.Location, err error) {
+func DbLocationFromId(fsq_id string) (loc *mealswipepb.Location, err error) {
 	hmget := redisClient.HMGet(
 		context.TODO(),
 		"loc."+fsq_id,
@@ -45,7 +46,7 @@ func DbGrabLocation(fsq_id string) (loc *mealswipepb.Location, err error) {
 	return
 }
 
-func DbGrabLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location, err error) {
+func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location, err error) {
 	get := redisClient.LIndex(context.TODO(), "session."+sessionId+".locations", index)
 	if err = get.Err(); err != nil {
 		return
@@ -56,5 +57,24 @@ func DbGrabLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Loca
 		return
 	}
 
-	return DbGrabLocation(get.Val())
+	return DbLocationFromId(get.Val())
+}
+
+func DbLocationIdsForLocation(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
+	// TODO Replace with GeoSearch when redis client supports it
+	geoRad := redisClient.GeoRadius(context.TODO(), "locindex.restaurants", lng, lat, &redis.GeoRadiusQuery{
+		Radius:   2,
+		Unit:     "mi",
+		WithDist: true,
+	})
+
+	if err = geoRad.Err(); err != nil {
+		return
+	}
+
+	for _, loc := range geoRad.Val() {
+		fsq_ids = append(fsq_ids, loc.Name)
+		distances = append(distances, loc.Dist)
+	}
+	return
 }
