@@ -2,6 +2,7 @@ package business
 
 import (
 	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redismock/v8"
 )
 
 var redisClient *redis.Client
@@ -13,4 +14,10 @@ func LoadRedisClient() *redis.Client {
 		DB:       0, // use default DB
 	})
 	return redisClient
+}
+
+func LoadRedisMockClient() redismock.ClientMock {
+	var mock redismock.ClientMock
+	redisClient, mock = redismock.NewClientMock()
+	return mock
 }

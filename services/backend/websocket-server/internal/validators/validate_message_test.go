@@ -4,6 +4,7 @@ import (
 	"log"
 	"testing"
 
+	"mealswipe.app/mealswipe/internal/business"
 	"mealswipe.app/mealswipe/internal/common/constants"
 	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
@@ -11,6 +12,8 @@ import (
 
 // TODO Make sure errors are of right type
 func TestValidateMessage(t *testing.T) {
+	redisMock := business.LoadRedisMockClient()
+
 	t.Run("valid create message", func(t *testing.T) {
 		userState := users.CreateUserState()
 		createMessage := &mealswipepb.WebsocketMessage{
@@ -26,11 +29,12 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("valid join message", func(t *testing.T) {
+		redisMock.ExpectGet("code.XCFHBB").SetVal("b")
 		userState := users.CreateUserState()
 		joinMessage := &mealswipepb.WebsocketMessage{
 			JoinMessage: &mealswipepb.JoinMessage{
 				Nickname: "Cam the Man",
-				Code:     "ABCDEF",
+				Code:     "XCFHBB",
 			},
 		}
 

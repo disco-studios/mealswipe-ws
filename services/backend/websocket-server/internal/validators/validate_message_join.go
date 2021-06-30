@@ -2,7 +2,9 @@ package validators
 
 import (
 	"mealswipe.app/mealswipe/internal/common/constants"
+	"mealswipe.app/mealswipe/internal/common/errors"
 	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/core/sessions"
 	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
@@ -15,5 +17,31 @@ func ValidateMessageJoin(userState *users.UserState, joinMessage *mealswipepb.Jo
 	if validateHostError != nil {
 		return validateHostError
 	}
+
+	// Validate that code is valid format
+	if !IsCodeValid(joinMessage.Code) {
+		return &errors.MessageValidationError{
+			MessageType:   "join",
+			Clarification: "invalid code format",
+		}
+	}
+
+	// Validate nickname
+	nicknameValid, err := IsNicknameValid(joinMessage.Nickname)
+	if err != nil {
+		return err
+	} else if !nicknameValid {
+		return &errors.MessageValidationError{
+			MessageType:   "join",
+			Clarification: "invalid nickname",
+		}
+	}
+
+	// Validate that this session actually exists
+	sessionId, err := sessions.GetIdFromCode(joinMessage.Code)
+	if err != nil || sessionId == "" {
+		return err
+	}
+
 	return
 }

@@ -47,7 +47,7 @@ func DecodeRaw(code string) int {
 
 func findValueOfCodeChar(codeChar string) int {
 	for charInd, charsetChar := range SESSION_CODE_CHARSET {
-		if charsetChar == string(codeChar) {
+		if charsetChar == codeChar {
 			return charInd
 		}
 	}
