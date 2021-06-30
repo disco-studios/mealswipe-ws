@@ -1,11 +1,12 @@
-package core
+package locations
 
 import (
 	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func GrabNextLocForUser(userState *UserState) (loc *mealswipepb.Location, err error) {
+func GrabNextForUser(userState *users.UserState) (loc *mealswipepb.Location, err error) {
 	ind, err := business.DbGameNextVoteInd(userState.JoinedSessionId, userState.UserId)
 	if err != nil {
 		return
@@ -15,8 +16,8 @@ func GrabNextLocForUser(userState *UserState) (loc *mealswipepb.Location, err er
 	return
 }
 
-func SendNextLocToUser(userState *UserState) (err error) {
-	loc, err := GrabNextLocForUser(userState)
+func SendNextToUser(userState *users.UserState) (err error) {
+	loc, err := GrabNextForUser(userState)
 	if err != nil {
 		return
 	}

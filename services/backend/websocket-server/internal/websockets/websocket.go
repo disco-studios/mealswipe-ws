@@ -8,7 +8,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
-	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/core/locations"
+	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/internal/handlers"
 	"mealswipe.app/mealswipe/internal/validators"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
@@ -17,7 +18,7 @@ import (
 var websocketUpgrader = websocket.Upgrader{} // use default options
 
 // Clean up things we couldn't directly defer, because they are defined in different scopes
-func ensureCleanup(userState *core.UserState) {
+func ensureCleanup(userState *users.UserState) {
 	if userState.RedisPubsub != nil {
 		defer userState.RedisPubsub.Close()
 	}
@@ -33,7 +34,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	defer c.Close()
 
 	// Create a user state for our user
-	userState := core.CreateUserState()
+	userState := users.CreateUserState()
 	defer ensureCleanup(userState)
 	defer close(userState.PubsubChannel)
 	go pubsubPump(userState, userState.PubsubChannel)
@@ -53,7 +54,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO Automatically clean up pubsub
 }
 
-func pubsubPump(userState *core.UserState, messageQueue <-chan string) {
+func pubsubPump(userState *users.UserState, messageQueue <-chan string) {
 	for message := range messageQueue {
 		log.Println("Redis message -> '" + message + "'")
 
@@ -64,7 +65,7 @@ func pubsubPump(userState *core.UserState, messageQueue <-chan string) {
 		} else {
 			userState.SendWebsocketMessage(websocketResponse)
 			if websocketResponse.GetGameStartedMessage() != nil {
-				err := core.SendNextLocToUser(userState)
+				err := locations.SendNextToUser(userState)
 				if err != nil {
 					log.Println(err)
 				}
@@ -102,7 +103,7 @@ func writePump(connection *websocket.Conn, messageQueue <-chan *mealswipepb.Webs
 	}
 }
 
-func readPump(connection *websocket.Conn, userState *core.UserState) {
+func readPump(connection *websocket.Conn, userState *users.UserState) {
 	for {
 		// Establish read connection
 		rawMessageType, inStream, err := connection.NextReader()

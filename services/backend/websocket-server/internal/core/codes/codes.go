@@ -1,4 +1,4 @@
-package core
+package codes
 
 import (
 	"math"
@@ -21,12 +21,12 @@ var MAX_SESSION_CODE_RAW int = int(math.Pow(
 	float64(SESSION_CODE_LENGTH),
 ))
 
-func GenerateRandomRawCode() int {
+func GenerateRandomRaw() int {
 	randSource := rand.NewSource(time.Now().UnixNano())
 	return rand.New(randSource).Intn(MAX_SESSION_CODE_RAW)
 }
 
-func EncodeRawCode(rawCode int) string {
+func EncodeRaw(rawCode int) string {
 	out := ""
 	for i := 0; i < SESSION_CODE_LENGTH; i++ {
 		out = SESSION_CODE_CHARSET[rawCode%SESSION_CODE_BASE] + out
@@ -35,7 +35,7 @@ func EncodeRawCode(rawCode int) string {
 	return out
 }
 
-func DecodeRawCode(code string) int {
+func DecodeRaw(code string) int {
 	out := 0
 	// Go through each digit
 	for _, codeChar := range code {

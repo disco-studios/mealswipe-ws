@@ -9,7 +9,7 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-func DbCreateSession(code string, sessionId string, userId string) (err error) {
+func DbSessionCreate(code string, sessionId string, userId string) (err error) {
 	pipe := redisClient.Pipeline()
 
 	sessionKey := "session." + sessionId
@@ -26,7 +26,7 @@ func DbCreateSession(code string, sessionId string, userId string) (err error) {
 	return
 }
 
-func DbUserJoinSessionById(userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
+func DbSessionJoinById(userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
 	pipe := redisClient.Pipeline()
 	sessionKey := "session." + sessionId
 	timeToLive := time.Hour * 24
@@ -52,7 +52,7 @@ func DbUserJoinSessionById(userId string, sessionId string, nickname string, gen
 	return
 }
 
-func DbGetSessionIdFromCode(code string) (sessionId string, err error) {
+func DbSessionGetIdFromCode(code string) (sessionId string, err error) {
 	key := "code." + code
 	result := redisClient.Get(context.TODO(), key)
 	return result.Val(), result.Err()
@@ -66,7 +66,7 @@ func handleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<-
 	log.Println("Redis PubSub cleaned up")
 }
 
-func DbStartSession(code string, sessionId string, lat float64, lng float64) (err error) {
+func DbSessionStart(code string, sessionId string, lat float64, lng float64) (err error) {
 	pipe := redisClient.Pipeline()
 
 	sessionKey := "session." + sessionId
@@ -92,7 +92,7 @@ func DbStartSession(code string, sessionId string, lat float64, lng float64) (er
 	return
 }
 
-func DbGetActiveUsers(sessionId string) (activeUsers []string, err error) {
+func DbSessionGetActiveUsers(sessionId string) (activeUsers []string, err error) {
 	hGetAll := redisClient.HGetAll(context.TODO(), "session."+sessionId+".users.active")
 	if err = hGetAll.Err(); err != nil {
 		return
@@ -112,7 +112,7 @@ func DbGetActiveUsers(sessionId string) (activeUsers []string, err error) {
 	return
 }
 
-func DbGetNicknames(sessionId string) (nicknames map[string]string, err error) {
+func DbSessionGetNicknames(sessionId string) (nicknames map[string]string, err error) {
 	hGetAll := redisClient.HGetAll(context.TODO(), "session."+sessionId+".users.nicknames")
 	if err = hGetAll.Err(); err != nil {
 		return

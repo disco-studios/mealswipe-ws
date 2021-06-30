@@ -1,4 +1,4 @@
-package core
+package constants
 
 const (
 	HostState_UNIDENTIFIED = iota

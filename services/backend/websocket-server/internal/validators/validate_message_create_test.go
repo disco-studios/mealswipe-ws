@@ -4,12 +4,13 @@ import (
 	"log"
 	"testing"
 
-	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/common/constants"
+	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func TestValidateCreateMessage(t *testing.T) {
-	userState := core.CreateUserState()
+	userState := users.CreateUserState()
 	createMessage := &mealswipepb.CreateMessage{
 		Nickname: "Cam the Man",
 	}
@@ -20,13 +21,13 @@ func TestValidateCreateMessage(t *testing.T) {
 		}
 	})
 	t.Run("HostState_JOINING invalid", func(t *testing.T) {
-		userState.HostState = core.HostState_JOINING
+		userState.HostState = constants.HostState_JOINING
 		if err := ValidateMessageCreate(userState, createMessage); err == nil {
 			t.FailNow()
 		}
 	})
 	t.Run("HostState_HOSTING invalid", func(t *testing.T) {
-		userState.HostState = core.HostState_HOSTING
+		userState.HostState = constants.HostState_HOSTING
 		if err := ValidateMessageCreate(userState, createMessage); err == nil {
 			t.FailNow()
 		}

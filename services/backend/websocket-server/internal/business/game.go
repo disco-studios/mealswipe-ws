@@ -7,7 +7,7 @@ import (
 )
 
 func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) {
-	activeUsers, err := DbGetActiveUsers(sessionId)
+	activeUsers, err := DbSessionGetActiveUsers(sessionId)
 	if err != nil {
 		return
 	}
