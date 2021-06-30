@@ -47,10 +47,13 @@ func TestValidateMessage(t *testing.T) {
 	t.Run("valid start message", func(t *testing.T) {
 		userState := users.CreateUserState()
 		userState.HostState = constants.HostState_HOSTING
+		userState.JoinedSessionCode = "XCFHBB"
+		userState.JoinedSessionId = "asdfsafa"
+		redisMock.ExpectGet("code." + userState.JoinedSessionCode).SetVal(userState.JoinedSessionId)
 		startMessage := &mealswipepb.WebsocketMessage{
 			StartMessage: &mealswipepb.StartMessage{
-				Lat: 0.0,
-				Lng: 0.0,
+				Lat: 44.84079,
+				Lng: -93.298279,
 			},
 		}
 

@@ -7,6 +7,7 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
+// TODO Check for empty states
 func ValidateMessage(userState *users.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
 	if common.HasCreateMessage(genericMessage) {
 		return ValidateMessageCreate(userState, genericMessage.GetCreateMessage())

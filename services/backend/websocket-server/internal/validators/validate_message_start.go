@@ -2,7 +2,9 @@ package validators
 
 import (
 	"mealswipe.app/mealswipe/internal/common/constants"
+	"mealswipe.app/mealswipe/internal/common/errors"
 	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/core/sessions"
 	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
@@ -15,5 +17,25 @@ func ValidateMessageStart(userState *users.UserState, startMessage *mealswipepb.
 	if validateHostError != nil {
 		return validateHostError
 	}
+
+	latLonValid := LatLonWithinUnitedStates(startMessage.Lat, startMessage.Lng)
+	if !latLonValid {
+		return &errors.MessageValidationError{
+			MessageType:   "start",
+			Clarification: "invalid lat lng",
+		}
+	}
+
+	sessionId, err := sessions.GetIdFromCode(userState.JoinedSessionCode)
+	if err != nil || sessionId == "" {
+		return err
+	}
+	if sessionId != userState.JoinedSessionId {
+		return &errors.MessageValidationError{
+			MessageType:   "start",
+			Clarification: "session code links to session other than joined",
+		}
+	}
+
 	return
 }
