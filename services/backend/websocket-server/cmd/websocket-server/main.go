@@ -21,6 +21,6 @@ func main() {
 
 	// Start the websocket server
 	log.Println("server init")
-	http.HandleFunc("/v2/api", websockets.WebsocketHandler)
+	http.HandleFunc("/", websockets.WebsocketHandler) // /v2/api
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }

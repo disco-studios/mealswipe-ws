@@ -117,6 +117,10 @@ func readPump(connection *websocket.Conn, userState *users.UserState) {
 			return
 		}
 
+		userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
+			Ack: "ack",
+		}) // TODO Remove, here for debugging for now
+
 		// Read in the raw message from the stream
 		readBuffer := new(bytes.Buffer)
 		readLength, readErr := readBuffer.ReadFrom(inStream)
@@ -148,10 +152,6 @@ func readPump(connection *websocket.Conn, userState *users.UserState) {
 			log.Println("handle: ", err)
 			return
 		}
-
-		userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
-			Ack: "ack",
-		}) // TODO Remove, here for debugging for now
 
 		// TODO Close socket cleanly when we fail
 	}

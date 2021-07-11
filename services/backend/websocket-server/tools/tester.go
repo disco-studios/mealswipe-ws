@@ -16,7 +16,8 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
+// var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
+var addr = flag.String("addr", "k8s-default-mealswip-1089bac565-1035559386.us-east-1.elb.amazonaws.com", "http service address")
 
 var sockets []*websocket.Conn
 
@@ -45,7 +46,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/v2/api"}
+	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
 	log.Printf("connecting to %s", u.String())
 	var lobbyCode string
 

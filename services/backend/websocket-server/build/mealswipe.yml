@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mealswipe-ws
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      mealswipe: ws
+  template:
+    metadata:
+      labels:
+        mealswipe: ws
+    spec:
+      containers:
+      - name: mealswipe-ws
+        image: 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mealswipe-svc
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    mealswipe: ws
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 32700
