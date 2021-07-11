@@ -119,7 +119,7 @@ func readPump(connection *websocket.Conn, userState *users.UserState) {
 
 		userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
 			Ack: "ack",
-		}) // TODO Remove, here for debugging for now
+		})
 
 		// Read in the raw message from the stream
 		readBuffer := new(bytes.Buffer)

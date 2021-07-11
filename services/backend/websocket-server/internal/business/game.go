@@ -17,7 +17,7 @@ func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) 
 		voteKeys = append(voteKeys, "user."+userId+".votes")
 	}
 
-	pipe := redisClient.Pipeline()
+	pipe := GetRedisClient().Pipeline()
 
 	pipe.BitOpAnd(context.TODO(), "session."+sessionId+".vote_tally", voteKeys...)
 	winningIndexResult := pipe.BitPos(context.TODO(), "session."+sessionId+".vote_tally", 1)
@@ -38,11 +38,11 @@ func DbGameSendVote(userId string, index int64, state bool) (err error) {
 		voteBit = 1
 	}
 
-	return redisClient.SetBit(context.TODO(), "user."+userId+".votes", index, voteBit).Err()
+	return GetRedisClient().SetBit(context.TODO(), "user."+userId+".votes", index, voteBit).Err()
 }
 
 func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
-	current := redisClient.HGet(
+	current := GetRedisClient().HGet(
 		context.TODO(),
 		"session."+sessionId+".users.voteind",
 		userId,
@@ -59,7 +59,7 @@ func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
 	}
 
 	go func() {
-		res := redisClient.HSet(
+		res := GetRedisClient().HSet(
 			context.TODO(),
 			"session."+sessionId+".users.voteind",
 			userId,

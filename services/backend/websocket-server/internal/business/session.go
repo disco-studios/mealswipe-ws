@@ -10,7 +10,7 @@ import (
 )
 
 func DbSessionCreate(code string, sessionId string, userId string) (err error) {
-	pipe := redisClient.Pipeline()
+	pipe := GetRedisClient().Pipeline()
 
 	sessionKey := "session." + sessionId
 	timeToLive := time.Hour * 24
@@ -27,7 +27,7 @@ func DbSessionCreate(code string, sessionId string, userId string) (err error) {
 }
 
 func DbSessionJoinById(userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
-	pipe := redisClient.Pipeline()
+	pipe := GetRedisClient().Pipeline()
 	sessionKey := "session." + sessionId
 	timeToLive := time.Hour * 24
 
@@ -45,7 +45,7 @@ func DbSessionJoinById(userId string, sessionId string, nickname string, generic
 	}
 
 	// Initiate a pubsub with this session
-	redisPubsub = redisClient.Subscribe(context.TODO(), "session."+sessionId)
+	redisPubsub = GetRedisClient().Subscribe(context.TODO(), "session."+sessionId)
 	pubsubChannel := redisPubsub.Channel()
 	go handleRedisMessages(pubsubChannel, genericPubsub)
 
@@ -54,7 +54,7 @@ func DbSessionJoinById(userId string, sessionId string, nickname string, generic
 
 func DbSessionGetIdFromCode(code string) (sessionId string, err error) {
 	key := "code." + code
-	result := redisClient.Get(context.TODO(), key)
+	result := GetRedisClient().Get(context.TODO(), key)
 	return result.Val(), result.Err()
 }
 
@@ -67,7 +67,7 @@ func handleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<-
 }
 
 func DbSessionStart(code string, sessionId string, lat float64, lng float64) (err error) {
-	pipe := redisClient.Pipeline()
+	pipe := GetRedisClient().Pipeline()
 
 	sessionKey := "session." + sessionId
 	timeToLive := time.Hour * 24
@@ -93,7 +93,7 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64) (er
 }
 
 func DbSessionGetActiveUsers(sessionId string) (activeUsers []string, err error) {
-	hGetAll := redisClient.HGetAll(context.TODO(), "session."+sessionId+".users.active")
+	hGetAll := GetRedisClient().HGetAll(context.TODO(), "session."+sessionId+".users.active")
 	if err = hGetAll.Err(); err != nil {
 		return
 	}
@@ -118,7 +118,7 @@ func DbSessionGetActiveNicknames(sessionId string) (activeNicknames []string, er
 		return
 	}
 
-	hGetAll := redisClient.HGetAll(context.TODO(), "session."+sessionId+".users.nicknames")
+	hGetAll := GetRedisClient().HGetAll(context.TODO(), "session."+sessionId+".users.nicknames")
 	if err = hGetAll.Err(); err != nil {
 		return
 	}

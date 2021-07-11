@@ -4,6 +4,12 @@ run:
 	protoc -I="./../" --go_out="./websocket-server/protobuf/" "./../protobuf/mealswipe/mealswipe.proto"
 	cd ./websocket-server/ && docker build -t mealswipe .
 	docker run -p 8080:8080 --name=mealswipe mealswipe
+deploy:
+	protoc -I="./../" --go_out="./websocket-server/protobuf/" "./../protobuf/mealswipe/mealswipe.proto"
+	cd ./websocket-server/ && docker build -t mealswipe .
+	docker tag mealswipe 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
+	docker push 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
+	kubectl rollout restart deployment mealswipe-ws
 stop:
 	docker kill mealswipe
 	docker rm mealswipe

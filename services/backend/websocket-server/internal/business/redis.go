@@ -5,19 +5,22 @@ import (
 	"github.com/go-redis/redismock/v8"
 )
 
-var redisClient *redis.Client
+var _rfedisClient *redis.ClusterClient
 
-func LoadRedisClient() *redis.Client {
-	redisClient = redis.NewClient(&redis.Options{
-		Addr:     "host.docker.internal:6379", // TODO This may need to change when on kube
-		Password: "",
-		DB:       0, // use default DB
+func LoadRedisClient() {
+	_rfedisClient = redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:         []string{"mealswipe-cluster-redis-cluster:6379"},
+		Password:      "gvSKYRLzac",
+		RouteRandomly: true,
 	})
-	return redisClient
+}
+
+func GetRedisClient() *redis.ClusterClient {
+	return _rfedisClient
 }
 
 func LoadRedisMockClient() redismock.ClientMock {
 	var mock redismock.ClientMock
-	redisClient, mock = redismock.NewClientMock()
+	_, mock = redismock.NewClientMock()
 	return mock
 }

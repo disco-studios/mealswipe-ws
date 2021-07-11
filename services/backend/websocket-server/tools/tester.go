@@ -17,7 +17,7 @@ import (
 )
 
 // var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
-var addr = flag.String("addr", "k8s-default-mealswip-1089bac565-1035559386.us-east-1.elb.amazonaws.com", "http service address")
+var addr = flag.String("addr", "k8s-default-mealswip-1089bac565-1635200056.us-east-1.elb.amazonaws.com", "http service address")
 
 var sockets []*websocket.Conn
 
