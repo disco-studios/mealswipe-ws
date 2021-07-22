@@ -15,7 +15,7 @@ func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) 
 
 	var voteKeys []string
 	for _, userId := range activeUsers {
-		voteKeys = append(voteKeys, BuildSessionKey(sessionId, BuildUserKey(userId, KEY_USER_VOTES)))
+		voteKeys = append(voteKeys, BuildVotesKey(sessionId, userId))
 	}
 
 	pipe := GetRedisClient().Pipeline()
@@ -40,7 +40,7 @@ func DbGameSendVote(userId string, sessionId string, index int64, state bool) (e
 		voteBit = 1
 	}
 
-	return GetRedisClient().SetBit(context.TODO(), BuildSessionKey(sessionId, BuildUserKey(userId, KEY_USER_VOTES)), index, voteBit).Err()
+	return GetRedisClient().SetBit(context.TODO(), BuildVotesKey(sessionId, userId), index, voteBit).Err()
 }
 
 func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {

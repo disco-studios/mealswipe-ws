@@ -29,6 +29,10 @@ func BuildUserKey(userId string, post string) string {
 	}
 }
 
+func BuildVotesKey(sessionId string, userId string) string {
+	return BuildSessionKey(sessionId, BuildUserKey(userId, KEY_USER_VOTES))
+}
+
 func BuildLocIndexKey(locindex string) string {
 	return fmt.Sprintf("locindex.%s", locindex) // TODO Change, but need to update the key in db
 }

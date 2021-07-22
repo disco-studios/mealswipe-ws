@@ -35,8 +35,8 @@ func DbSessionJoinById(userId string, sessionId string, nickname string, generic
 	pipe.HSet(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_USERS_ACTIVE), userId, true)        // TODO Expire
 	pipe.HSet(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_VOTEIND), userId, 0)                // TODO Expire
 	pipe.HSet(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_USERS_NICKNAMES), userId, nickname) // TODO Expire
-	pipe.SetBit(context.TODO(), BuildSessionKey(sessionId, BuildUserKey(userId, KEY_USER_VOTES)), 0, 0)
-	pipe.Expire(context.TODO(), BuildSessionKey(sessionId, BuildUserKey(userId, KEY_USER_VOTES)), timeToLive)
+	pipe.SetBit(context.TODO(), BuildVotesKey(sessionId, userId), 0, 0)
+	pipe.Expire(context.TODO(), BuildVotesKey(sessionId, userId), timeToLive)
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
