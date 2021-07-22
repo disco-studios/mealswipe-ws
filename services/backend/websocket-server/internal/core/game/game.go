@@ -39,6 +39,6 @@ func CheckWin(userState *users.UserState) (err error) {
 	return
 }
 
-func Vote(userId string, index int64, state bool) (err error) {
-	return business.DbGameSendVote(userId, index, state)
+func Vote(userId string, sessionId string, index int64, state bool) (err error) {
+	return business.DbGameSendVote(userId, sessionId, index, state)
 }

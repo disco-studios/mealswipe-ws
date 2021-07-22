@@ -28,7 +28,8 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	// Upgrade the connection to a websocket
 	c, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		// TODO Disabled... error connection? Maybe re-enable
+		// log.Print("upgrade:", err)
 		return
 	}
 	defer c.Close()
@@ -50,8 +51,6 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Call the read pump to handle incoming messages
 	readPump(c, userState)
-
-	// TODO Automatically clean up pubsub
 }
 
 func pubsubPump(userState *users.UserState, messageQueue <-chan string) {
@@ -101,6 +100,7 @@ func writePump(connection *websocket.Conn, messageQueue <-chan *mealswipepb.Webs
 			return
 		}
 	}
+	log.Println("WritePump cleaned up")
 }
 
 func readPump(connection *websocket.Conn, userState *users.UserState) {
@@ -117,9 +117,10 @@ func readPump(connection *websocket.Conn, userState *users.UserState) {
 			return
 		}
 
+		// Send an ack so we know the message was received for debugging
 		userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
 			Ack: "ack",
-		})
+		}) // TODO Remove for prod
 
 		// Read in the raw message from the stream
 		readBuffer := new(bytes.Buffer)

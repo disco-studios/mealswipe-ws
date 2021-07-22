@@ -13,7 +13,7 @@ import (
 func DbLocationFromId(fsq_id string) (loc *mealswipepb.Location, err error) {
 	hmget := GetRedisClient().HMGet(
 		context.TODO(),
-		"loc."+fsq_id,
+		BuildLocKey(fsq_id),
 		"name",
 		"photos",
 		"latitude",
@@ -47,7 +47,7 @@ func DbLocationFromId(fsq_id string) (loc *mealswipepb.Location, err error) {
 }
 
 func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location, err error) {
-	get := GetRedisClient().LIndex(context.TODO(), "session."+sessionId+".locations", index)
+	get := GetRedisClient().LIndex(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), index)
 	if err = get.Err(); err != nil {
 		return
 	}
@@ -62,7 +62,7 @@ func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location
 
 func DbLocationIdsForLocation(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
 	// TODO Replace with GeoSearch when redis client supports it
-	geoRad := GetRedisClient().GeoRadius(context.TODO(), "locindex.restaurants", lng, lat, &redis.GeoRadiusQuery{
+	geoRad := GetRedisClient().GeoRadius(context.TODO(), BuildLocIndexKey("restaurants"), lng, lat, &redis.GeoRadiusQuery{
 		Radius:   2,
 		Unit:     "mi",
 		WithDist: true,

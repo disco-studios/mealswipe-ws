@@ -31,7 +31,7 @@ func write_message(index int, message *mealswipepb.WebsocketMessage) {
 		log.Println("write:", err)
 		return
 	}
-	log.Println("Wrote")
+	log.Println("Wrote", message)
 }
 
 func write_message_delay(index int, message *mealswipepb.WebsocketMessage) {

@@ -9,21 +9,23 @@ import (
 func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) {
 	activeUsers, err := DbSessionGetActiveUsers(sessionId)
 	if err != nil {
+		log.Print("can't get active users")
 		return
 	}
 
 	var voteKeys []string
 	for _, userId := range activeUsers {
-		voteKeys = append(voteKeys, "user."+userId+".votes")
+		voteKeys = append(voteKeys, BuildSessionKey(sessionId, BuildUserKey(userId, KEY_USER_VOTES)))
 	}
 
 	pipe := GetRedisClient().Pipeline()
 
-	pipe.BitOpAnd(context.TODO(), "session."+sessionId+".vote_tally", voteKeys...)
-	winningIndexResult := pipe.BitPos(context.TODO(), "session."+sessionId+".vote_tally", 1)
+	pipe.BitOpAnd(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_VOTE_TALLY), voteKeys...)
+	winningIndexResult := pipe.BitPos(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_VOTE_TALLY), 1)
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
+		log.Print("can't tally votes")
 		return
 	}
 
@@ -32,19 +34,19 @@ func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) 
 	return
 }
 
-func DbGameSendVote(userId string, index int64, state bool) (err error) {
+func DbGameSendVote(userId string, sessionId string, index int64, state bool) (err error) {
 	voteBit := 0
 	if state {
 		voteBit = 1
 	}
 
-	return GetRedisClient().SetBit(context.TODO(), "user."+userId+".votes", index, voteBit).Err()
+	return GetRedisClient().SetBit(context.TODO(), BuildSessionKey(sessionId, BuildUserKey(userId, KEY_USER_VOTES)), index, voteBit).Err()
 }
 
 func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
 	current := GetRedisClient().HGet(
 		context.TODO(),
-		"session."+sessionId+".users.voteind",
+		BuildSessionKey(sessionId, KEY_SESSION_VOTEIND),
 		userId,
 	)
 
@@ -61,7 +63,7 @@ func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
 	go func() {
 		res := GetRedisClient().HSet(
 			context.TODO(),
-			"session."+sessionId+".users.voteind",
+			BuildSessionKey(sessionId, KEY_SESSION_VOTEIND),
 			userId,
 			index+1,
 		)
