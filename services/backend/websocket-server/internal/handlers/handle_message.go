@@ -1,18 +1,19 @@
 package handlers
 
 import (
-	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/common"
+	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func HandleMessage(userState *core.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
-	if core.HasCreateMessage(genericMessage) {
+func HandleMessage(userState *users.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
+	if common.HasCreateMessage(genericMessage) {
 		return HandleMessageCreate(userState, genericMessage.GetCreateMessage())
-	} else if core.HasJoinMessage(genericMessage) {
+	} else if common.HasJoinMessage(genericMessage) {
 		return HandleMessageJoin(userState, genericMessage.GetJoinMessage())
-	} else if core.HasStartMessage(genericMessage) {
+	} else if common.HasStartMessage(genericMessage) {
 		return HandleMessageStart(userState, genericMessage.GetStartMessage())
-	} else if core.HasVoteMessage(genericMessage) {
+	} else if common.HasVoteMessage(genericMessage) {
 		return HandleMessageVote(userState, genericMessage.GetVoteMessage())
 	} else {
 		return nil // TODO No message provided by ther user!! Figure out what to do here

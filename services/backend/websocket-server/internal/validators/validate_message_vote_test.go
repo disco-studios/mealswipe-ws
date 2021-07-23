@@ -4,12 +4,13 @@ import (
 	"log"
 	"testing"
 
-	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/common/constants"
+	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func TestValidateVoteMessage(t *testing.T) {
-	userState := core.CreateUserState()
+	userState := users.CreateUserState()
 	voteMessage := &mealswipepb.VoteMessage{
 		Index: 0,
 		Vote:  true,
@@ -21,13 +22,13 @@ func TestValidateVoteMessage(t *testing.T) {
 		}
 	})
 	t.Run("HostState_JOINING valid", func(t *testing.T) {
-		userState.HostState = core.HostState_JOINING
+		userState.HostState = constants.HostState_JOINING
 		if err := ValidateMessageVote(userState, voteMessage); err != nil {
 			log.Fatal(err)
 		}
 	})
 	t.Run("HostState_HOSTING valid", func(t *testing.T) {
-		userState.HostState = core.HostState_HOSTING
+		userState.HostState = constants.HostState_HOSTING
 		if err := ValidateMessageVote(userState, voteMessage); err != nil {
 			log.Fatal(err)
 		}

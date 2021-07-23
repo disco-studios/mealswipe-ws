@@ -4,14 +4,18 @@ import (
 	"log"
 	"testing"
 
-	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/internal/common/constants"
+	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 // TODO Make sure errors are of right type
 func TestValidateMessage(t *testing.T) {
+	redisMock := business.LoadRedisMockClient()
+
 	t.Run("valid create message", func(t *testing.T) {
-		userState := core.CreateUserState()
+		userState := users.CreateUserState()
 		createMessage := &mealswipepb.WebsocketMessage{
 			CreateMessage: &mealswipepb.CreateMessage{
 				Nickname: "Cam the Man",
@@ -25,11 +29,12 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("valid join message", func(t *testing.T) {
-		userState := core.CreateUserState()
+		redisMock.ExpectGet("code.XCFHBB").SetVal("b")
+		userState := users.CreateUserState()
 		joinMessage := &mealswipepb.WebsocketMessage{
 			JoinMessage: &mealswipepb.JoinMessage{
 				Nickname: "Cam the Man",
-				Code:     "ABCDEF",
+				Code:     "XCFHBB",
 			},
 		}
 
@@ -40,12 +45,15 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("valid start message", func(t *testing.T) {
-		userState := core.CreateUserState()
-		userState.HostState = core.HostState_HOSTING
+		userState := users.CreateUserState()
+		userState.HostState = constants.HostState_HOSTING
+		userState.JoinedSessionCode = "XCFHBB"
+		userState.JoinedSessionId = "asdfsafa"
+		redisMock.ExpectGet("code." + userState.JoinedSessionCode).SetVal(userState.JoinedSessionId)
 		startMessage := &mealswipepb.WebsocketMessage{
 			StartMessage: &mealswipepb.StartMessage{
-				Lat: 0.0,
-				Lng: 0.0,
+				Lat: 44.84079,
+				Lng: -93.298279,
 			},
 		}
 
@@ -56,8 +64,8 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("valid vote message", func(t *testing.T) {
-		userState := core.CreateUserState()
-		userState.HostState = core.HostState_HOSTING
+		userState := users.CreateUserState()
+		userState.HostState = constants.HostState_HOSTING
 		startMessage := &mealswipepb.WebsocketMessage{
 			VoteMessage: &mealswipepb.VoteMessage{
 				Index: 0,
@@ -72,8 +80,8 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("invalid HostState create message", func(t *testing.T) {
-		userState := core.CreateUserState()
-		userState.HostState = core.HostState_HOSTING
+		userState := users.CreateUserState()
+		userState.HostState = constants.HostState_HOSTING
 		createMessage := &mealswipepb.WebsocketMessage{
 			CreateMessage: &mealswipepb.CreateMessage{
 				Nickname: "Cam the Man",
@@ -87,8 +95,8 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("invalid HostState join message", func(t *testing.T) {
-		userState := core.CreateUserState()
-		userState.HostState = core.HostState_HOSTING
+		userState := users.CreateUserState()
+		userState.HostState = constants.HostState_HOSTING
 		joinMessage := &mealswipepb.WebsocketMessage{
 			JoinMessage: &mealswipepb.JoinMessage{
 				Nickname: "Cam the Man",
@@ -103,8 +111,8 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("invalid HostState start message", func(t *testing.T) {
-		userState := core.CreateUserState()
-		userState.HostState = core.HostState_JOINING
+		userState := users.CreateUserState()
+		userState.HostState = constants.HostState_JOINING
 		startMessage := &mealswipepb.WebsocketMessage{
 			StartMessage: &mealswipepb.StartMessage{
 				Lat: 0.0,
@@ -119,8 +127,8 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("invalid HostState vote message", func(t *testing.T) {
-		userState := core.CreateUserState()
-		userState.HostState = core.HostState_UNIDENTIFIED
+		userState := users.CreateUserState()
+		userState.HostState = constants.HostState_UNIDENTIFIED
 		startMessage := &mealswipepb.WebsocketMessage{
 			VoteMessage: &mealswipepb.VoteMessage{
 				Index: 0,
@@ -135,7 +143,7 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("invalid empty message", func(t *testing.T) {
-		userState := core.CreateUserState()
+		userState := users.CreateUserState()
 		emptyMessage := &mealswipepb.WebsocketMessage{}
 
 		err := ValidateMessage(userState, emptyMessage)

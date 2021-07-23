@@ -1,4 +1,4 @@
-package core
+package errors
 
 import "fmt"
 
@@ -13,6 +13,20 @@ func (e *InvalidHostStateError) Error() string {
 		e.Allowed,
 		" had ",
 		e.Received,
+	)
+}
+
+type MessageValidationError struct {
+	MessageType   string
+	Clarification string
+}
+
+func (e *MessageValidationError) Error() string {
+	return fmt.Sprint(
+		"validation error: ",
+		e.MessageType,
+		": ",
+		e.Clarification,
 	)
 }
 

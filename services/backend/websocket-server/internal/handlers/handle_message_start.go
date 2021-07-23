@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"mealswipe.app/mealswipe/internal/business"
-	"mealswipe.app/mealswipe/internal/core"
+	"mealswipe.app/mealswipe/internal/core/sessions"
+	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func HandleMessageStart(userState *core.UserState, startMessage *mealswipepb.StartMessage) (err error) {
-	err = business.DbStartSession(userState.JoinedSessionCode, userState.JoinedSessionId, startMessage.Lat, startMessage.Lng)
+func HandleMessageStart(userState *users.UserState, startMessage *mealswipepb.StartMessage) (err error) {
+	err = sessions.Start(userState.JoinedSessionCode, userState.JoinedSessionId, startMessage.Lat, startMessage.Lng)
 	if err != nil {
 		return
 	}

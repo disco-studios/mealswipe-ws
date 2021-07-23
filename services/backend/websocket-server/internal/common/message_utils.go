@@ -1,4 +1,4 @@
-package core
+package common
 
 import "mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 
