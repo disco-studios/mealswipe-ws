@@ -7,7 +7,7 @@ import (
 )
 
 func HandleMessageStart(userState *users.UserState, startMessage *mealswipepb.StartMessage) (err error) {
-	err = sessions.Start(userState.JoinedSessionCode, userState.JoinedSessionId, startMessage.Lat, startMessage.Lng)
+	err = sessions.Start(userState.JoinedSessionCode, userState.JoinedSessionId, startMessage.Lat, startMessage.Lng, startMessage.Radius)
 	if err != nil {
 		return
 	}

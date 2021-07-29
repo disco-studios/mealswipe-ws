@@ -16,8 +16,9 @@ func TestValidateStartMessage(t *testing.T) {
 	userState.JoinedSessionCode = validCode
 	userState.JoinedSessionId = "jsda"
 	startMessage := &mealswipepb.StartMessage{
-		Lat: 33.427204,   // Tempe, AZ, USA
-		Lng: -111.939896, // Tempe, AZ, USA
+		Lat:    33.427204,   // Tempe, AZ, USA
+		Lng:    -111.939896, // Tempe, AZ, USA
+		Radius: 1000,
 	}
 	redisMock := business.LoadRedisMockClient()
 

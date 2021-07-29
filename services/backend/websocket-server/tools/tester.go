@@ -121,8 +121,9 @@ func main() {
 	// User 0 starts lobby
 	write_message_delay(0, &mealswipepb.WebsocketMessage{
 		StartMessage: &mealswipepb.StartMessage{
-			Lat: 39.9533952,
-			Lng: -75.1882669,
+			Lat:    39.9533952,
+			Lng:    -75.1882669,
+			Radius: 500,
 		},
 	})
 

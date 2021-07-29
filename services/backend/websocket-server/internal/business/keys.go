@@ -34,7 +34,7 @@ func BuildVotesKey(sessionId string, userId string) string {
 }
 
 func BuildLocIndexKey(locindex string) string {
-	return fmt.Sprintf("locindex.%s", locindex) // TODO Change, but need to update the key in db
+	return fmt.Sprintf("locindex.%s", locindex) // TODO Change to :, but need to update the key in db
 }
 
 func BuildCodeKey(code string) string {
@@ -42,5 +42,9 @@ func BuildCodeKey(code string) string {
 }
 
 func BuildLocKey(locid string) string {
-	return fmt.Sprintf("loc.%s", locid) // TODO Change, but need to update the key in db
+	if LOCATION_MODE_API {
+		return fmt.Sprintf("loc:api:%s", locid)
+	} else {
+		return fmt.Sprintf("loc.%s", locid) // TODO Change, but need to update the key in db
+	}
 }

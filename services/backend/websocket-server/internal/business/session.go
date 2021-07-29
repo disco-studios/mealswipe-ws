@@ -66,12 +66,19 @@ func handleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<-
 	log.Println("Redis PubSub cleaned up")
 }
 
-func DbSessionStart(code string, sessionId string, lat float64, lng float64) (err error) {
+func reverseVenueIds(venues []string) []string {
+	for i, j := 0, len(venues)-1; i < j; i, j = i+1, j-1 {
+		venues[i], venues[j] = venues[j], venues[i]
+	}
+	return venues
+}
+
+func DbSessionStart(code string, sessionId string, lat float64, lng float64, radius int32) (err error) {
 	pipe := GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
 
-	venueIds, _, err := DbLocationIdsForLocation(lat, lng)
+	venueIds, _, err := DbLocationIdsForLocation(lat, lng, radius)
 	if err != nil {
 		log.Print("can't get start locations")
 		return
@@ -82,7 +89,7 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64) (er
 
 	pipe.Del(context.TODO(), BuildCodeKey(code))
 	pipe.Set(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_GAME_STATE), "RUNNING", timeToLive) // TODO pull RUNNING into constant
-	pipe.LPush(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), venueIds)
+	pipe.LPush(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), reverseVenueIds(venueIds))
 	pipe.Expire(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), timeToLive)
 
 	pipout, err := pipe.Exec(context.TODO())
