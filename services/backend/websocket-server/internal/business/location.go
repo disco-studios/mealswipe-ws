@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 )
 
 const LOCATION_MODE_API = true
+const HITS_BEFORE_MISS = 4 + 1 // show 4 hits until show miss
 
 func DbLocationFromId(fsq_id string) (loc *mealswipepb.Location, err error) {
 	hmget := GetRedisClient().HMGet(
@@ -147,6 +149,97 @@ func locationPhotoJsonFromVenue(venue foursquare.Venue) (encoded string, err err
 	return
 }
 
+func shuffleVenues(venues []foursquare.Venue) {
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(venues), func(i, j int) { venues[i], venues[j] = venues[j], venues[i] })
+}
+
+func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.Venue, err error) {
+	// Sort by distance
+	foursquare.By(foursquare.Distance).Sort(venues)
+	log.Println("Filtering ", len(venues), " locations")
+
+	// Filter out duplicate names. We don't want to pay for 2 Wawa or Dunkin Donut requests
+	// Since sorted by distance, we will keep the closest instance of a place
+	// Not perfect, may not have perfect match names or may be two places with same name. Close enough for now
+	seenNames := make(map[string]foursquare.Venue)
+	var uniqueNames []foursquare.Venue
+	for _, venue := range venues {
+		seenVenue, exists := seenNames[venue.Name]
+		if !exists {
+			seenNames[venue.Name] = venue
+			uniqueNames = append(uniqueNames, venue)
+		} else {
+			log.Println("\t> Location ", venue.Name, " at", venue.Location.Address, "skipped because we have already seen one at ", seenVenue.Location.Address)
+		}
+	}
+
+	// Check our database for information about each location
+	pipe := GetRedisClient().Pipeline()
+	var cmds []*redis.SliceCmd
+	for _, venue := range uniqueNames {
+		cmds = append(cmds, pipe.HMGet(
+			context.TODO(),
+			BuildLocKey(venue.Id),
+			"blacklist", // Blacklist, to see if we are ignoring this place
+			"name",      // Name, to see if it exists in db
+		))
+	}
+
+	_, err = pipe.Exec(context.TODO())
+	if err != nil {
+		log.Print("can't get locations from db for optimization")
+	}
+
+	log.Println("Got results!")
+
+	// Figure out hits and misses, while filtering out blacklisted locations
+	var hit []foursquare.Venue
+	var miss []foursquare.Venue
+	for ind, venue := range uniqueNames {
+		vals := cmds[ind].Val()
+		log.Println("\t\t> ", vals)
+		if vals[0] == nil {
+			// Location wasn't blacklisted! Now lets see if we have it saved
+			if vals[1] == nil {
+				miss = append(miss, venue)
+			} else {
+				hit = append(hit, venue)
+			}
+		} else {
+			log.Println("\t> Skipped ", venue.Name, venue.Id, " due to blacklist")
+		}
+	}
+
+	// We now have a good set of hits and misses! Shuffle them out of distance sorted
+	log.Println("\t> Had ", len(hit), " hit to ", len(miss), "misses, ", len(miss)+len(hit), " total")
+	shuffleVenues(hit)
+	shuffleVenues(miss)
+
+	totalVenues := len(hit) + len(miss)
+	// Now we want to prioritize cache hits. Lets do it
+	for i := 0; i < totalVenues; i++ {
+		// Prefer a miss if we are on a miss index and have enough left
+		preferHit := !(((i+1)%HITS_BEFORE_MISS == 0) && (len(miss) > 0))
+		// Only prefer a hit if we have enough hits to supply still
+		preferHit = (len(hit) > 0) && preferHit
+
+		if preferHit {
+			log.Print("\t> h", i)
+			resultingVenues = append(resultingVenues, hit[0])
+			hit = hit[1:]
+		} else {
+			log.Print("\t> m", i)
+			resultingVenues = append(resultingVenues, miss[0])
+			miss = miss[1:]
+		}
+	}
+
+	log.Println("\n\t> Total: ", len(resultingVenues))
+
+	return
+}
+
 func dbLocationIdsForLocationAPI(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
@@ -178,10 +271,16 @@ func dbLocationIdsForLocationAPI(lat float64, lng float64) (fsq_ids []string, di
 		return
 	}
 
-	// Turn the response into an array of IDs and distances
+	// Optimize the returned venues
+	venues, err := findOptimalVenues(respObj.Response.Venues)
+	if err != nil {
+		return
+	}
+
+	// Turn the result into an array of IDs and distances
 	var locArray []string
 	var distArray []float64
-	for _, venue := range respObj.Response.Venues {
+	for _, venue := range venues {
 		locArray = append(locArray, venue.Id)
 		distArray = append(distArray, float64(venue.Location.Distance))
 	}
