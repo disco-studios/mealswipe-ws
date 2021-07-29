@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"log"
-
 	"mealswipe.app/mealswipe/internal/common/constants"
 	"mealswipe.app/mealswipe/internal/core/sessions"
 	"mealswipe.app/mealswipe/internal/core/users"
@@ -33,6 +31,5 @@ func HandleMessageCreate(userState *users.UserState, createMessage *mealswipepb.
 			Users:    []string{userState.Nickname},
 		},
 	})
-	log.Println("Created a valid session")
 	return
 }

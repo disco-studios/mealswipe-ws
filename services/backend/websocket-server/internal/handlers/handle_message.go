@@ -1,15 +1,12 @@
 package handlers
 
 import (
-	"log"
-
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func HandleMessage(userState *users.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
-	log.Println("Got message", &genericMessage)
 	if common.HasCreateMessage(genericMessage) {
 		return HandleMessageCreate(userState, genericMessage.GetCreateMessage())
 	} else if common.HasJoinMessage(genericMessage) {
