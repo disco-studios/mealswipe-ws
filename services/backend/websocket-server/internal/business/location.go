@@ -8,13 +8,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"mealswipe.app/mealswipe/internal/common/foursquare"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-var locModeApi = true
+const LOCATION_MODE_API = true
 
 func DbLocationFromId(fsq_id string) (loc *mealswipepb.Location, err error) {
 	hmget := GetRedisClient().HMGet(
@@ -33,38 +34,28 @@ func DbLocationFromId(fsq_id string) (loc *mealswipepb.Location, err error) {
 	}
 
 	vals := hmget.Val()
-	if locModeApi && vals[0] == nil {
+	if LOCATION_MODE_API && vals[0] == nil {
 		// If the location wasn't in the DB, fetch it then mock a correct response
-		log.Println("Cache miss", fsq_id)
-		venue, err := DbLocationGrabFreshAPI(fsq_id)
+		log.Println("> Cache miss", fsq_id)
+		venue, err := dbLocationGrabFreshAPI(fsq_id)
 		if err != nil {
 			return nil, err
 		}
 
-		// Build list of photo URLs
-		var photos []string
-		for _, photo := range venue.Photos.Groups[0].Items {
-			photos = append(photos, fmt.Sprintf(
-				"%soriginal%s",
-				photo.Prefix,
-				photo.Suffix,
-			))
-		}
-
-		// Encode photo URLs into JSON to match DB format
-		photoBytes, err := json.Marshal(venue.Location.Lat)
+		encodedPhotos, err := locationPhotoJsonFromVenue(venue)
 		if err != nil {
-			log.Println("Failed to marshal photos", photos)
 			return nil, err
 		}
 
 		// Map to expected DB returns
 		vals[0] = venue.Name             // name
-		vals[1] = string(photoBytes)     // photos (json string list)
+		vals[1] = encodedPhotos          // photos (json string list)
 		vals[2] = venue.Location.Lat     // lat
 		vals[3] = venue.Location.Lng     // lng
 		vals[4] = ""                     // chain // TODO see if we can get from API
 		vals[5] = venue.Location.Address // Address
+	} else {
+		log.Println("> Cache hit", fsq_id)
 	}
 
 	var photo string
@@ -101,17 +92,18 @@ func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location
 }
 
 func DbLocationIdsForLocation(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
-	if locModeApi {
-		return DbLocationIdsForLocationAPI(lat, lng)
+	if LOCATION_MODE_API {
+		return dbLocationIdsForLocationAPI(lat, lng)
 	} else {
-		return DbLocationIdsForLocationFlat(lat, lng)
+		return dbLocationIdsForLocationFlat(lat, lng)
 	}
 }
 
 /*
 ** Flat file implementation
  */
-func DbLocationIdsForLocationFlat(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
+
+func dbLocationIdsForLocationFlat(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
 	// TODO Replace with GeoSearch when redis client supports it
 	geoRad := GetRedisClient().GeoRadius(context.TODO(), BuildLocIndexKey("restaurants"), lng, lat, &redis.GeoRadiusQuery{
 		Radius:   2,
@@ -133,8 +125,29 @@ func DbLocationIdsForLocationFlat(lat float64, lng float64) (fsq_ids []string, d
 /*
 ** API implementation
  */
+func locationPhotoJsonFromVenue(venue foursquare.Venue) (encoded string, err error) {
+	// Build list of photo URLs
+	var photos []string
+	for _, photo := range venue.Photos.Groups[0].Items {
+		photos = append(photos, fmt.Sprintf(
+			"%soriginal%s",
+			photo.Prefix,
+			photo.Suffix,
+		))
+	}
 
-func DbLocationIdsForLocationAPI(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
+	// Encode photo URLs into JSON to match DB format
+	photoBytes, err := json.Marshal(venue.Location.Lat)
+	if err != nil {
+		log.Println("Failed to marshal photos into json", photos)
+		return
+	}
+
+	encoded = string(photoBytes)
+	return
+}
+
+func dbLocationIdsForLocationAPI(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
 		"UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN", // client id
@@ -177,11 +190,32 @@ func DbLocationIdsForLocationAPI(lat float64, lng float64) (fsq_ids []string, di
 	return locArray, distArray, nil
 }
 
-func DbLocationWriteVenue(venue foursquare.Venue) (err error) {
-	return nil // TODO Impl and cache location
+func dbLocationWriteVenue(fsq_id string, venue foursquare.Venue) (err error) {
+	encodedPhotos, err := locationPhotoJsonFromVenue(venue)
+	if err != nil {
+		return
+	}
+
+	pipe := GetRedisClient().Pipeline()
+
+	pipe.HSet(context.TODO(), BuildLocKey(fsq_id), map[string]interface{}{
+		"name":      venue.Name,
+		"photos":    encodedPhotos,
+		"latitude":  venue.Location.Lat,
+		"longitude": venue.Location.Lng,
+		// "chain_name": "", // TODO We can maybe get this
+		"address": venue.Location.Address,
+	})
+	pipe.Expire(context.TODO(), BuildLocKey(fsq_id), time.Hour*24) // We can only hold API data for 24 hours
+
+	_, err = pipe.Exec(context.TODO())
+	if err != nil {
+		log.Print("can't save API result")
+	}
+	return
 }
 
-func DbLocationGrabFreshAPI(fsq_id string) (venue foursquare.Venue, err error) {
+func dbLocationGrabFreshAPI(fsq_id string) (venue foursquare.Venue, err error) {
 
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/%s?client_id=%s&client_secret=%s&v=%s",
@@ -213,5 +247,5 @@ func DbLocationGrabFreshAPI(fsq_id string) (venue foursquare.Venue, err error) {
 	venue = respObj.Response.Venue
 
 	// Save the result and return a venue
-	return venue, DbLocationWriteVenue(venue)
+	return venue, dbLocationWriteVenue(fsq_id, venue)
 }

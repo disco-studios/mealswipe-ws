@@ -19,11 +19,6 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	// Make the request
-	log.Println("Trying to use rest API")
-	business.DbLocationIdsForLocationAPI(39.9535168, -75.1879198)
-	log.Println("Done")
-
 	// Start the websocket server
 	log.Println("server init")
 	http.HandleFunc("/", websockets.WebsocketHandler) // /v2/api
