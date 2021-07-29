@@ -18,6 +18,17 @@ func ValidateMessageStart(userState *users.UserState, startMessage *mealswipepb.
 		return validateHostError
 	}
 
+	radiusValid, err := IsRadiusValid(startMessage.Radius)
+	if err != nil {
+		return err
+	}
+	if !radiusValid {
+		return &errors.MessageValidationError{
+			MessageType:   "start",
+			Clarification: "invalid radius",
+		}
+	}
+
 	latLonValid := LatLonWithinUnitedStates(startMessage.Lat, startMessage.Lng)
 	if !latLonValid {
 		return &errors.MessageValidationError{

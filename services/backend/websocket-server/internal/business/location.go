@@ -93,11 +93,11 @@ func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location
 	return DbLocationFromId(get.Val())
 }
 
-func DbLocationIdsForLocation(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
+func DbLocationIdsForLocation(lat float64, lng float64, radius int32) (fsq_ids []string, distances []float64, err error) {
 	if LOCATION_MODE_API {
-		return dbLocationIdsForLocationAPI(lat, lng)
+		return dbLocationIdsForLocationAPI(lat, lng, radius)
 	} else {
-		return dbLocationIdsForLocationFlat(lat, lng)
+		return dbLocationIdsForLocationFlat(lat, lng, radius)
 	}
 }
 
@@ -105,11 +105,11 @@ func DbLocationIdsForLocation(lat float64, lng float64) (fsq_ids []string, dista
 ** Flat file implementation
  */
 
-func dbLocationIdsForLocationFlat(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
+func dbLocationIdsForLocationFlat(lat float64, lng float64, radius int32) (fsq_ids []string, distances []float64, err error) {
 	// TODO Replace with GeoSearch when redis client supports it
 	geoRad := GetRedisClient().GeoRadius(context.TODO(), BuildLocIndexKey("restaurants"), lng, lat, &redis.GeoRadiusQuery{
-		Radius:   2,
-		Unit:     "mi",
+		Radius:   float64(radius),
+		Unit:     "m",
 		WithDist: true,
 	})
 
@@ -128,6 +128,10 @@ func dbLocationIdsForLocationFlat(lat float64, lng float64) (fsq_ids []string, d
 ** API implementation
  */
 func locationPhotoJsonFromVenue(venue foursquare.Venue) (encoded string, err error) {
+	if len(venue.Photos.Groups) == 0 {
+		return "[]", nil
+	}
+
 	// Build list of photo URLs
 	var photos []string
 	for _, photo := range venue.Photos.Groups[0].Items {
@@ -240,7 +244,7 @@ func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.
 	return
 }
 
-func dbLocationIdsForLocationAPI(lat float64, lng float64) (fsq_ids []string, distances []float64, err error) {
+func dbLocationIdsForLocationAPI(lat float64, lng float64, radius int32) (fsq_ids []string, distances []float64, err error) {
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
 		"UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN", // client id
@@ -248,7 +252,7 @@ func dbLocationIdsForLocationAPI(lat float64, lng float64) (fsq_ids []string, di
 		"20210726",                 // version
 		lat,                        // lat
 		lng,                        // lng
-		2000,                       // radius (m)
+		radius,                     // radius (m)
 		"4d4b7105d754a06374d81259", // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
 	)
 

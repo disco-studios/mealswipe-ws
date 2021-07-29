@@ -73,12 +73,12 @@ func reverseVenueIds(venues []string) []string {
 	return venues
 }
 
-func DbSessionStart(code string, sessionId string, lat float64, lng float64) (err error) {
+func DbSessionStart(code string, sessionId string, lat float64, lng float64, radius int32) (err error) {
 	pipe := GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
 
-	venueIds, _, err := DbLocationIdsForLocation(lat, lng)
+	venueIds, _, err := DbLocationIdsForLocation(lat, lng, radius)
 	if err != nil {
 		log.Print("can't get start locations")
 		return
