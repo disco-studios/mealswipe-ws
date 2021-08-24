@@ -1,3 +1,84 @@
+
+######################################################
+#### External DNS configuration https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md
+######################################################
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns
+  # If you're using Amazon EKS with IAM Roles for Service Accounts, specify the following annotation.
+  # Otherwise, you may safely omit it.
+  annotations:
+    # Substitute your account ID and IAM service role name below.
+    eks.amazonaws.com/role-arn: arn:aws:iam::850351896280:role/EKS-ExternalDNS
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: external-dns
+rules:
+- apiGroups: [""]
+  resources: ["services","endpoints","pods"]
+  verbs: ["get","watch","list"]
+- apiGroups: ["extensions","networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get","watch","list"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list","watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-dns-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-dns
+subjects:
+- kind: ServiceAccount
+  name: external-dns
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+      # If you're using kiam or kube2iam, specify the following annotation.
+      # Otherwise, you may safely omit it.
+      # annotations:
+      #   iam.amazonaws.com/role: arn:aws:iam::ACCOUNT-ID:role/IAM-SERVICE-ROLE-NAME
+    spec:
+      serviceAccountName: external-dns
+      containers:
+      - name: external-dns
+        image: k8s.gcr.io/external-dns/external-dns:v0.7.6
+        args:
+        # - --source=service
+        - --source=ingress
+        # - --domain-filter=discostudios.io # will make ExternalDNS see only the hosted zones matching provided domain, omit to process all available hosted zones
+        - --provider=aws
+        - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
+        # - --aws-zone-type=public # only look at public hosted zones (valid values are public, private or no value for both)
+        - --registry=txt
+        - --txt-owner-id=Z04792731FTSJ5DTB19SH
+      securityContext:
+        fsGroup: 65534 # For ExternalDNS to be able to read Kubernetes and AWS token files
+---
+######################################################
+#### App configuration
+######################################################
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -32,15 +113,20 @@ spec:
   - port: 8080
 
 ---
+# https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.2/guide/ingress/annotations/
+# https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: mealswipe-ingress
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600 # TODO This allows connections to idle 10 minutes. Remove after debugging
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:850351896280:certificate/dccfa494-8393-4057-99e0-190c32062845
     kubernetes.io/ingress.class: alb
 spec:
   rules:
+    - host: mealswipesessions.discostudios.io
     - http:
         paths:
           - path: "/"

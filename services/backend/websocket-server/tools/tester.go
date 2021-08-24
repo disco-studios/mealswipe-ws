@@ -20,7 +20,9 @@ import (
 )
 
 // var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
-var addr = flag.String("addr", "k8s-default-mealswip-1089bac565-1635200056.us-east-1.elb.amazonaws.com", "http service address")
+// var addr = flag.String("addr", "k8s-default-mealswip-1089bac565-1635200056.us-east-1.elb.amazonaws.com", "http service address")
+
+var addr = flag.String("addr", "mealswipesessions.discostudios.io", "http service address")
 
 var sockets []*websocket.Conn
 
@@ -84,7 +86,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
+	u := url.URL{Scheme: "wss", Host: *addr, Path: "/"}
 	log.Printf("connecting to %s", u.String())
 	var lobbyCode string
 
@@ -95,8 +97,8 @@ func main() {
 	fmt.Println("| * spawn                         | creates a new websocket instance               |")
 	fmt.Println("| * create <ws#> <nickname>       | creates a lobby with ws <ws#>                  |")
 	fmt.Println("| * join <ws#> <nickname> <code>  | joins ws <ws#> into lobby <code>               |")
+	fmt.Println("| * start <ws#>                   | uses ws <ws#> to start at philly example loc   |")
 	fmt.Println("| * start <ws#> <lat> <lng> <rad> | uses ws <ws#> to start at <lat>,<lng> in <rad> |")
-	fmt.Println("|         <ws#>                   | > starts with a default location of philly     |")
 	fmt.Println("| * vote <ws#> <ind> <y/n>        | votes for ws <ws#>                             |")
 	fmt.Println("| * q                             | quits                                          |")
 	fmt.Println("------------------------------------------------------------------------------------")
