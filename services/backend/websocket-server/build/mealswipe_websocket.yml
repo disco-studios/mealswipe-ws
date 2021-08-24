@@ -122,7 +122,7 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600 # TODO This allows connections to idle 10 minutes. Remove after debugging
-    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:850351896280:certificate/dccfa494-8393-4057-99e0-190c32062845
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:850351896280:certificate/dccfa494-8393-4057-99e0-190c32062845
     kubernetes.io/ingress.class: alb
 spec:
   rules:
