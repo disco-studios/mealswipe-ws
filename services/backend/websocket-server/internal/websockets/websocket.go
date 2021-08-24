@@ -26,7 +26,7 @@ For each connection, the following is made:
 These are used to handle messages for the various channels we communicate over. We can only
 read/write one message at a time, so these handlers deal with that.
 
-TODO: Ping/pong or read/write deadlines, buffering, TLS
+TODO: Ping/pong or read/write deadlines, buffering, TLS (working from client to ALB, but verify that works, and see if we need tls from alb to server)
 */
 
 var websocketUpgrader = websocket.Upgrader{} // use default options
