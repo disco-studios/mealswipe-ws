@@ -15,6 +15,20 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
+/*
+This is the main file for handling websocket connections.
+For each connection, the following is made:
+
+- readPump
+- writePump
+- pubsubPump
+
+These are used to handle messages for the various channels we communicate over. We can only
+read/write one message at a time, so these handlers deal with that.
+
+TODO: Ping/pong or read/write deadlines, buffering, TLS
+*/
+
 var websocketUpgrader = websocket.Upgrader{} // use default options
 
 // Clean up things we couldn't directly defer, because they are defined in different scopes
