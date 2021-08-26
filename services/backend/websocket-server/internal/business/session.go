@@ -101,6 +101,10 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64, rad
 		log.Print("can't start")
 		return
 	}
+
+	// Register statistics async
+	go StatsRegisterGameStart(sessionId)
+
 	return
 }
 

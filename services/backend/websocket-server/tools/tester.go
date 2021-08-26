@@ -202,7 +202,7 @@ func main() {
 				write_message_delay(socketNum, &mealswipepb.WebsocketMessage{
 					VoteMessage: &mealswipepb.VoteMessage{
 						Index: int32(ind),
-						Vote:  strings.Compare("t", parts[3]) == 0,
+						Vote:  strings.Compare("y", parts[3]) == 0,
 					},
 				})
 				fmt.Println("> Done")

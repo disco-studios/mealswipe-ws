@@ -36,7 +36,8 @@ func DbLocationFromId(loc_id string) (loc *mealswipepb.Location, err error) {
 	}
 
 	vals := hmget.Val()
-	if LOCATION_MODE_API && vals[0] == nil {
+	hit := LOCATION_MODE_API && vals[0] == nil
+	if hit {
 		// If the location wasn't in the DB, fetch it then mock a correct response
 		log.Println("> Cache miss", loc_id)
 		venue, err := dbLocationGrabFreshAPI(loc_id)
@@ -60,6 +61,9 @@ func DbLocationFromId(loc_id string) (loc *mealswipepb.Location, err error) {
 		log.Println("> Cache hit", loc_id)
 	}
 
+	// Register statistics async
+	go StatsRegisterLocLoad(loc_id, hit)
+
 	var photo string
 	var photos []string
 	log.Print(vals[1])
@@ -79,7 +83,7 @@ func DbLocationFromId(loc_id string) (loc *mealswipepb.Location, err error) {
 	return
 }
 
-func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location, err error) {
+func DbLocationIdFromInd(sessionId string, index int64) (locId string, err error) {
 	get := GetRedisClient().LIndex(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), index)
 	if err = get.Err(); err != nil {
 		return
@@ -90,7 +94,13 @@ func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location
 		return
 	}
 
-	return DbLocationFromId(get.Val())
+	return get.Val(), nil
+}
+
+func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location, err error) {
+	locId, err := DbLocationIdFromInd(sessionId, index)
+
+	return DbLocationFromId(locId)
 }
 
 func DbLocationIdsForLocation(lat float64, lng float64, radius int32) (loc_id []string, distances []float64, err error) {

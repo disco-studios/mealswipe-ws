@@ -40,6 +40,9 @@ func DbGameSendVote(userId string, sessionId string, index int64, state bool) (e
 		voteBit = 1
 	}
 
+	// Register statistics async
+	go StatsRegisterSwipe(sessionId, index, state)
+
 	return GetRedisClient().SetBit(context.TODO(), BuildVotesKey(sessionId, userId), index, voteBit).Err()
 }
 

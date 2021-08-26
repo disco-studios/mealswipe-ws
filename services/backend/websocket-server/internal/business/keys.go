@@ -29,6 +29,14 @@ func BuildUserKey(userId string, post string) string {
 	}
 }
 
+func BuildStatisticKey(key string, post string) string {
+	if post != "" {
+		return fmt.Sprintf("statistic:%s:%s", key, post)
+	} else {
+		return fmt.Sprintf("statistic:%s", key)
+	}
+}
+
 func BuildVotesKey(sessionId string, userId string) string {
 	return BuildSessionKey(sessionId, BuildUserKey(userId, KEY_USER_VOTES))
 }
