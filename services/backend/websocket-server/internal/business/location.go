@@ -245,11 +245,11 @@ func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.
 		preferHit = (len(hit) > 0) && preferHit
 
 		if preferHit {
-			log.Print("\t> h", i)
+			log.Println("\t> h", i)
 			resultingVenues = append(resultingVenues, hit[0])
 			hit = hit[1:]
 		} else {
-			log.Print("\t> m", i)
+			log.Println("\t> m", i)
 			resultingVenues = append(resultingVenues, miss[0])
 			miss = miss[1:]
 		}
@@ -311,7 +311,7 @@ func dbLocationIdsForLocationAPI(lat float64, lng float64, radius int32) (loc_id
 
 func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
 	if venue.Name == "" {
-		log.Print("Not saving location, looks incomplete", venue)
+		log.Println("Not saving location, looks incomplete", venue)
 		return
 	}
 
@@ -334,7 +334,7 @@ func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't save API result")
+		log.Println("can't save API result")
 	}
 	return
 }

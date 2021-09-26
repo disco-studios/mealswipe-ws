@@ -20,7 +20,7 @@ func DbSessionCreate(code string, sessionId string, userId string) (err error) {
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't create")
+		log.Println("can't create")
 		return
 	}
 	return
@@ -40,7 +40,7 @@ func DbSessionJoinById(userId string, sessionId string, nickname string, generic
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't join by id")
+		log.Println("can't join by id")
 		return
 	}
 
@@ -80,7 +80,7 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64, rad
 
 	venueIds, _, err := DbLocationIdsForLocation(lat, lng, radius)
 	if err != nil {
-		log.Print("can't get start locations")
+		log.Println("can't get start locations")
 		return
 	}
 	if len(venueIds) == 0 {
@@ -98,7 +98,7 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64, rad
 		log.Println(BuildSessionKey(sessionId, KEY_SESSION_GAME_STATE), pipout[1].Err())
 		log.Println(BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), pipout[2].Err())
 		log.Println(BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), pipout[3].Err())
-		log.Print("can't start")
+		log.Println("can't start")
 		return
 	}
 
@@ -131,19 +131,19 @@ func DbSessionGetActiveUsers(sessionId string) (activeUsers []string, err error)
 func DbSessionGetActiveNicknames(sessionId string) (activeNicknames []string, err error) {
 	activeUsers, err := DbSessionGetActiveUsers(sessionId)
 	if err != nil {
-		log.Print("can't get active users")
+		log.Println("can't get active users")
 		return
 	}
 
 	hGetAll := GetRedisClient().HGetAll(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_USERS_NICKNAMES))
 	if err = hGetAll.Err(); err != nil {
-		log.Print("can't get nicknames")
+		log.Println("can't get nicknames")
 		return
 	}
 
 	nicknamesMap := hGetAll.Val()
 	if err != nil {
-		log.Print("can't get nicknames val")
+		log.Println("can't get nicknames val")
 		return
 	}
 

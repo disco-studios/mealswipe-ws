@@ -43,7 +43,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		// TODO Disabled... error connection? Maybe re-enable
-		// log.Print("upgrade:", err)
+		// log.Println("upgrade:", err)
 		return
 	}
 	defer c.Close()

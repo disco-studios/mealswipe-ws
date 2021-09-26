@@ -25,7 +25,7 @@ func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) 
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't tally votes")
+		log.Println("can't tally votes")
 		return
 	}
 
@@ -54,7 +54,7 @@ func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
 	)
 
 	if err = current.Err(); err != nil {
-		log.Print("can't get ind")
+		log.Println("can't get ind")
 		return
 	}
 

@@ -28,7 +28,7 @@ func StatsRegisterSwipe(sessionId string, index int64, right bool) (err error) {
 	// Commit pipeline changes
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't register swipe statistic")
+		log.Println("can't register swipe statistic")
 		return
 	}
 	return
@@ -51,7 +51,7 @@ func StatsRegisterGameStart(sessionId string) (err error) {
 	// Commit pipeline changes
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't register game start statistic")
+		log.Println("can't register game start statistic")
 		return
 	}
 	return
@@ -75,7 +75,7 @@ func StatsRegisterLocLoad(locId string, hit bool) (err error) {
 	// Commit pipeline changes
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't register loc load statistic")
+		log.Println("can't register loc load statistic")
 		return
 	}
 	return
