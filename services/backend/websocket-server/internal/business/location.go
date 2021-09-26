@@ -36,8 +36,8 @@ func DbLocationFromId(loc_id string) (loc *mealswipepb.Location, err error) {
 	}
 
 	vals := hmget.Val()
-	hit := LOCATION_MODE_API && vals[0] == nil
-	if hit {
+	miss := LOCATION_MODE_API && vals[0] == nil
+	if miss {
 		// If the location wasn't in the DB, fetch it then mock a correct response
 		log.Println("> Cache miss", loc_id)
 		venue, err := dbLocationGrabFreshAPI(loc_id)
@@ -57,19 +57,23 @@ func DbLocationFromId(loc_id string) (loc *mealswipepb.Location, err error) {
 		vals[3] = venue.Location.Lng     // lng
 		vals[4] = ""                     // chain // TODO see if we can get from API
 		vals[5] = venue.Location.Address // Address
+		log.Println(">!!!", vals)
 	} else {
 		log.Println("> Cache hit", loc_id)
 	}
 
 	// Register statistics async
-	go StatsRegisterLocLoad(loc_id, hit)
+	go StatsRegisterLocLoad(loc_id, miss)
 
 	var photo string
 	var photos []string
-	log.Print(vals[1])
+	log.Println("Photos val", vals[1])
 	json.Unmarshal([]byte(vals[1].(string)), &photos)
 	if len(photos) > 0 {
 		photo = photos[0]
+		log.Println("Photo", photo)
+	} else {
+		log.Println("No photos")
 	}
 
 	loc = &mealswipepb.Location{
@@ -146,14 +150,14 @@ func locationPhotoJsonFromVenue(venue foursquare.Venue) (encoded string, err err
 	var photos []string
 	for _, photo := range venue.Photos.Groups[0].Items {
 		photos = append(photos, fmt.Sprintf(
-			"%soriginal%s",
+			"%s1080x1920%s", //"%soriginal%s",
 			photo.Prefix,
 			photo.Suffix,
 		))
 	}
 
 	// Encode photo URLs into JSON to match DB format
-	photoBytes, err := json.Marshal(venue.Location.Lat)
+	photoBytes, err := json.Marshal(photos)
 	if err != nil {
 		log.Println("Failed to marshal photos into json", photos)
 		return
@@ -202,7 +206,7 @@ func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't get locations from db for optimization")
+		log.Println("can't get locations from db for optimization")
 	}
 
 	log.Println("Got results!")
@@ -212,7 +216,6 @@ func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.
 	var miss []foursquare.Venue
 	for ind, venue := range uniqueNames {
 		vals := cmds[ind].Val()
-		log.Println("\t\t> ", vals)
 		if vals[0] == nil {
 			// Location wasn't blacklisted! Now lets see if we have it saved
 			if vals[1] == nil {
