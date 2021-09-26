@@ -305,11 +305,16 @@ func dbLocationIdsForLocationAPI(lat float64, lng float64, radius int32) (loc_id
 		distArray = append(distArray, float64(venue.Location.Distance))
 	}
 
-	log.Print("Got locs", locArray)
+	log.Println("Got locs", locArray)
 	return locArray, distArray, nil
 }
 
 func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
+	if venue.Name == "" {
+		log.Print("Not saving location, looks incomplete", venue)
+		return
+	}
+
 	encodedPhotos, err := locationPhotoJsonFromVenue(venue)
 	if err != nil {
 		return
@@ -366,5 +371,6 @@ func dbLocationGrabFreshAPI(loc_id string) (venue foursquare.Venue, err error) {
 	venue = respObj.Response.Venue
 
 	// Save the result and return a venue
+	// TODO This response shouldn't have to wait for the response from saving the venue
 	return venue, dbLocationWriteVenue(loc_id, venue)
 }

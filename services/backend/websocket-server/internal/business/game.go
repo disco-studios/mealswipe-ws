@@ -9,7 +9,7 @@ import (
 func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) {
 	activeUsers, err := DbSessionGetActiveUsers(sessionId)
 	if err != nil {
-		log.Print("can't get active users")
+		log.Println("can't get active users")
 		return
 	}
 
