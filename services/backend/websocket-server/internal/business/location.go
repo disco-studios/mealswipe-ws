@@ -103,6 +103,9 @@ func DbLocationIdFromInd(sessionId string, index int64) (locId string, err error
 
 func DbLocationFromInd(sessionId string, index int64) (loc *mealswipepb.Location, err error) {
 	locId, err := DbLocationIdFromInd(sessionId, index)
+	if err != nil {
+		return nil, err
+	}
 
 	return DbLocationFromId(locId)
 }
