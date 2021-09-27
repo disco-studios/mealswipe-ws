@@ -78,9 +78,11 @@ func pubsubPump(userState *users.UserState, messageQueue <-chan string) {
 		} else {
 			userState.SendWebsocketMessage(websocketResponse)
 			if websocketResponse.GetGameStartedMessage() != nil {
-				err := locations.SendNextToUser(userState)
-				if err != nil {
-					log.Println(err)
+				for i := 0; i < 2; i++ {
+					err := locations.SendNextToUser(userState)
+					if err != nil {
+						log.Println(err)
+					}
 				}
 			}
 		}

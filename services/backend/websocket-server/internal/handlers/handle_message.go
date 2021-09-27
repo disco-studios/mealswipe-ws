@@ -6,6 +6,7 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
+// TODO NULL SAFETY FROM PROTOBUF STUFF
 func HandleMessage(userState *users.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
 	if common.HasCreateMessage(genericMessage) {
 		return HandleMessageCreate(userState, genericMessage.GetCreateMessage())

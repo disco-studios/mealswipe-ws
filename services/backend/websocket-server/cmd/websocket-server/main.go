@@ -11,6 +11,7 @@ import (
 
 var addr = flag.String("addr", ":8080", "http service address")
 
+// TODO NULL SAFETY FROM PROTOBUF STUFF
 func main() {
 	// Connect to redis
 	business.LoadRedisClient()
