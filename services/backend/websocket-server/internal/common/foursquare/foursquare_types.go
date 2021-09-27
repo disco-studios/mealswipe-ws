@@ -24,11 +24,39 @@ type VenuePhotosBody struct {
 	Groups []VenuePhotosGroup
 }
 
+type VenueCategory struct {
+	ShortName string
+}
+
+type VenuePrice struct {
+	Tier int32
+}
+
+type VenueMenu struct {
+	MobileUrl string
+	Url       string
+}
+
+type VenueColor struct {
+	Value int32
+}
+
+type VenueColors struct {
+	HighlightColor     VenueColor
+	HighlightTextColor VenueColor
+}
+
 type Venue struct {
-	Id       string
-	Name     string
-	Photos   VenuePhotosBody
-	Location VenueLocation
+	Id            string
+	Name          string
+	Photos        VenuePhotosBody
+	Location      VenueLocation
+	Categories    []VenueCategory
+	Price         VenuePrice
+	Rating        float32
+	RatingSignals int
+	Menu          VenueMenu
+	Colors        VenueColors
 }
 
 type LocationRequestResponseBody struct {

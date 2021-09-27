@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) {
+func DbGameCheckWin(sessionId string) (win bool, winningIndex int32, err error) {
 	activeUsers, err := DbSessionGetActiveUsers(sessionId)
 	if err != nil {
 		log.Println("can't get active users")
@@ -29,12 +29,12 @@ func DbGameCheckWin(sessionId string) (win bool, winningIndex int64, err error) 
 		return
 	}
 
-	winningIndex = winningIndexResult.Val()
+	winningIndex = int32(winningIndexResult.Val())
 	win = winningIndex > -1
 	return
 }
 
-func DbGameSendVote(userId string, sessionId string, index int64, state bool) (err error) {
+func DbGameSendVote(userId string, sessionId string, index int32, state bool) (err error) {
 	voteBit := 0
 	if state {
 		voteBit = 1
@@ -43,7 +43,7 @@ func DbGameSendVote(userId string, sessionId string, index int64, state bool) (e
 	// Register statistics async
 	go StatsRegisterSwipe(sessionId, index, state)
 
-	return GetRedisClient().SetBit(context.TODO(), BuildVotesKey(sessionId, userId), index, voteBit).Err()
+	return GetRedisClient().SetBit(context.TODO(), BuildVotesKey(sessionId, userId), int64(index), voteBit).Err()
 }
 
 func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {

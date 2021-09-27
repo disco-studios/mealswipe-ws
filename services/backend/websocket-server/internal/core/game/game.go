@@ -17,7 +17,7 @@ func CheckWin(userState *users.UserState) (err error) {
 
 	if win {
 		var loc *mealswipepb.Location
-		loc, err = business.DbLocationFromInd(userState.JoinedSessionId, int64(winIndex))
+		loc, err = business.DbLocationFromInd(userState.JoinedSessionId, winIndex)
 		if err != nil {
 			return
 		}
@@ -39,6 +39,6 @@ func CheckWin(userState *users.UserState) (err error) {
 	return
 }
 
-func Vote(userId string, sessionId string, index int64, state bool) (err error) {
+func Vote(userId string, sessionId string, index int32, state bool) (err error) {
 	return business.DbGameSendVote(userId, sessionId, index, state)
 }

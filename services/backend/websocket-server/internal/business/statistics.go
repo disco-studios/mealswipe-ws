@@ -7,7 +7,7 @@ import (
 )
 
 // Tracks: Total right/left swipes at global and location level
-func StatsRegisterSwipe(sessionId string, index int64, right bool) (err error) {
+func StatsRegisterSwipe(sessionId string, index int32, right bool) (err error) {
 	locId, err := DbLocationIdFromInd(sessionId, index)
 	if err != nil {
 		return

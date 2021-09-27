@@ -8,7 +8,7 @@ import (
 )
 
 func HandleMessageVote(userState *users.UserState, voteMessage *mealswipepb.VoteMessage) (err error) {
-	err = game.Vote(userState.UserId, userState.JoinedSessionId, int64(voteMessage.Index), voteMessage.Vote)
+	err = game.Vote(userState.UserId, userState.JoinedSessionId, voteMessage.Index, voteMessage.Vote)
 	if err != nil {
 		return
 	}

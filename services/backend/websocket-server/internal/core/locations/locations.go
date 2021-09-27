@@ -12,7 +12,7 @@ func GrabNextForUser(userState *users.UserState) (loc *mealswipepb.Location, err
 		return
 	}
 
-	loc, err = business.DbLocationFromInd(userState.JoinedSessionId, int64(ind))
+	loc, err = business.DbLocationFromInd(userState.JoinedSessionId, int32(ind))
 	return
 }
 
