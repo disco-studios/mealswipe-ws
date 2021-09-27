@@ -36,6 +36,7 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		"menuUrl",
 		"highlightColor",
 		"textColor",
+		"tags",
 	)
 
 	if err = hmget.Err(); err != nil {
@@ -58,10 +59,15 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		}
 
 		// Map categories to tags
-		// var tags []string
-		// for tag := range venue.Categories {
-		// 	tags = append(tags, tag.ShortName)
-		// }
+		var tagsArr []string
+		for _, tag := range venue.Categories {
+			tagsArr = append(tagsArr, tag.ShortName)
+		}
+		rawBytes, err := json.Marshal(tagsArr)
+		if err != nil {
+			log.Println("Error marshalling tags", err)
+		}
+		tags := string(rawBytes)
 
 		// Map to expected DB returns
 		vals[0] = venue.Name                             // name
@@ -77,6 +83,7 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		vals[10] = venue.Menu.Url                        // menu url
 		vals[11] = venue.Colors.HighlightColor.Value     // highlight color
 		vals[12] = venue.Colors.HighlightTextColor.Value // highlight text color
+		vals[13] = tags
 	} else {
 		log.Println("> Cache hit", loc_id)
 	}
@@ -86,13 +93,15 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 
 	var photo string
 	var photos []string
-	log.Println("Photos val", vals[1])
 	json.Unmarshal([]byte(vals[1].(string)), &photos)
 	if len(photos) > 0 {
 		photo = photos[0]
-		log.Println("Photo", photo)
-	} else {
-		log.Println("No photos")
+	}
+
+	var tags []string
+	switch vals[13].(type) {
+	case string:
+		json.Unmarshal([]byte(vals[13].(string)), &tags)
 	}
 
 	// TODO I feel like a disgusting human being for writing this, there must
@@ -173,6 +182,7 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		Url:            url,
 		HighlightColor: highlightColor,
 		TextColor:      textColor,
+		Tags:           tags,
 	}
 	return
 }
@@ -399,6 +409,8 @@ func dbLocationIdsForLocationAPI(lat float64, lng float64, radius int32) (loc_id
 	return locArray, distArray, nil
 }
 
+// TODO Make this take the standard array
+// TODO Make the standard array into a struct so she less messy (loc object probably)
 func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
 	if venue.Name == "" {
 		log.Println("Not saving location, looks incomplete", venue)
@@ -409,6 +421,17 @@ func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
 	if err != nil {
 		return
 	}
+
+	var tags []string
+	for _, tag := range venue.Categories {
+		tags = append(tags, tag.ShortName)
+	}
+	tagBytes, err := json.Marshal(tags)
+	if err != nil {
+		log.Println("Failed to marshal tags into json", tags)
+		return
+	}
+	encodedTags := string(tagBytes)
 
 	pipe := GetRedisClient().Pipeline()
 
@@ -425,6 +448,7 @@ func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
 		"menuUrl":        venue.Menu.Url,
 		"highlightColor": venue.Colors.HighlightColor.Value,
 		"textColor":      venue.Colors.HighlightTextColor.Value,
+		"tags":           encodedTags,
 		// "chain_name": "", // TODO We can maybe get this
 	})
 	pipe.Expire(context.TODO(), BuildLocKey(loc_id), time.Hour*24) // We can only hold API data for 24 hours
