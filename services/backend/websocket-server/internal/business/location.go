@@ -18,6 +18,21 @@ import (
 
 const LOCATION_MODE_API = true
 const HITS_BEFORE_MISS = 4 + 1 // show 4 hits until show miss
+var ALLOWED_CATEGORIES = []string{
+	"4bf58dd8d48988d116941735", // Bars
+	"4bf58dd8d48988d16e941735", // Fast Food
+	"4bf58dd8d48988d1d0941735", // Dessert
+	"4bf58dd8d48988d1e0931735", // Coffee
+	"4bf58dd8d48988d143941735", // Breakfast Spot
+	"4bf58dd8d48988d142941735", // Asian
+	"4bf58dd8d48988d1c1941735", // Mexican
+	"4bf58dd8d48988d14e941735", // American
+	"4bf58dd8d48988d110941735", // Italian
+	"4bf58dd8d48988d10e941735", // Greek
+	"4bf58dd8d48988d1ca941735", // Pizza
+	"4bf58dd8d48988d1d3941735", // Vegetarian / Vegan
+	"4d4b7105d754a06374d81259", // Food
+}
 
 func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	hmget := GetRedisClient().HMGet(
@@ -210,9 +225,9 @@ func DbLocationFromInd(sessionId string, index int32) (loc *mealswipepb.Location
 	return DbLocationFromId(locId, index)
 }
 
-func DbLocationIdsForLocation(lat float64, lng float64, radius int32) (loc_id []string, distances []float64, err error) {
+func DbLocationIdsForLocation(lat float64, lng float64, radius int32, categoryId string) (loc_id []string, distances []float64, err error) {
 	if LOCATION_MODE_API {
-		return dbLocationIdsForLocationAPI(lat, lng, radius)
+		return dbLocationIdsForLocationAPI(lat, lng, radius, categoryId)
 	} else {
 		return dbLocationIdsForLocationFlat(lat, lng, radius)
 	}
@@ -360,16 +375,26 @@ func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.
 	return
 }
 
-func dbLocationIdsForLocationAPI(lat float64, lng float64, radius int32) (loc_id []string, distances []float64, err error) {
+func dbLocationIdsForLocationAPI(lat float64, lng float64, radius int32, _categoryId string) (loc_id []string, distances []float64, err error) {
+	categoryId := "4d4b7105d754a06374d81259" // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
+	if _categoryId != "" {
+		for _, allowedCategoryId := range ALLOWED_CATEGORIES {
+			if _categoryId == allowedCategoryId {
+				categoryId = _categoryId
+				break
+			}
+		}
+	}
+
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
 		"UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN", // client id
 		"3QD0PJNSFOJTWWLZCGO3ERHCTQEVA4L11LSEFFDLAOKFSDVR", // client secret
-		"20210726",                 // version
-		lat,                        // lat
-		lng,                        // lng
-		radius,                     // radius (m)
-		"4d4b7105d754a06374d81259", // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
+		"20210726", // version
+		lat,        // lat
+		lng,        // lng
+		radius,     // radius (m)
+		categoryId, // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
 	)
 
 	// Make the request
@@ -464,8 +489,6 @@ func dbLocationGrabFreshAPI(loc_id string) (venue foursquare.Venue, err error) {
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/%s?client_id=%s&client_secret=%s&v=%s",
 		loc_id, // venue ID
-		// "UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN", // client id
-		// "3QD0PJNSFOJTWWLZCGO3ERHCTQEVA4L11LSEFFDLAOKFSDVR", // client secret
 		"GGI531X4VKM04LSSKKX1XNHCRRXZL5PPXFLCGAW233SLVJ0J", // client id
 		"RQYEPCI2F4WSTCV1Y20V4IGBRDUMPLQBUARDBAVEEPGS12VJ", // client secret
 		"20210726", // version

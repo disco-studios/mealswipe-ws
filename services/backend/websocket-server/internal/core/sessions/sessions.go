@@ -19,8 +19,8 @@ func Create(userState *users.UserState) (sessionID string, code string, err erro
 	return
 }
 
-func Start(code string, sessionId string, lat float64, lng float64, radius int32) (err error) {
-	return business.DbSessionStart(code, sessionId, lat, lng, radius)
+func Start(code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
+	return business.DbSessionStart(code, sessionId, lat, lng, radius, categoryId)
 }
 
 func reserveSessionCode(sessionId string) (code string, err error) {
