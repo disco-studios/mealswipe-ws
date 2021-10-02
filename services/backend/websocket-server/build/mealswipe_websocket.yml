@@ -149,6 +149,43 @@ spec:
     app: ms-stats
   ports:
   - port: 8080
+---
+
+######################################################
+#### Admin configuration
+######################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mealswipe-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-admin
+  template:
+    metadata:
+      labels:
+        app: ms-admin
+    spec:
+      containers:
+        - name: mealswipe-admin
+          image: 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe-admin:latest
+          ports:
+            - containerPort: 8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mealswipe-admin-service
+spec:
+  type: NodePort
+  selector:
+    app: ms-admin
+  ports:
+  - port: 8080
 
 ---
   
@@ -177,6 +214,15 @@ spec:
             backend:
               service:
                 name: mealswipe-stats-service
+                port:
+                  number: 8080
+    - http:
+        paths:
+          - path: "/admin"
+            pathType: Prefix
+            backend:
+              service:
+                name: mealswipe-admin-service
                 port:
                   number: 8080
     - http:

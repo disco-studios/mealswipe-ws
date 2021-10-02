@@ -9,8 +9,6 @@ import (
 )
 
 func generalStatistics(c *gin.Context) {
-	log.Println("> Hit!")
-
 	stats, err := business.DbGetStatistics()
 	if err != nil {
 		c.Error(err)

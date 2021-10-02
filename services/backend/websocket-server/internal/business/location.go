@@ -34,6 +34,8 @@ var ALLOWED_CATEGORIES = []string{
 	"4d4b7105d754a06374d81259", // Food
 }
 
+const DISABLE_CACHING = false
+
 func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	hmget := GetRedisClient().HMGet(
 		context.TODO(),
@@ -60,9 +62,13 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 
 	vals := hmget.Val()
 	miss := LOCATION_MODE_API && vals[0] == nil
-	if miss {
+	if miss || DISABLE_CACHING {
 		// If the location wasn't in the DB, fetch it then mock a correct response
-		log.Println("> Cache miss", loc_id)
+		if DISABLE_CACHING {
+			log.Println("> Forced miss", loc_id)
+		} else {
+			log.Println("> Cache miss", loc_id)
+		}
 		venue, err := dbLocationGrabFreshAPI(loc_id)
 		if err != nil {
 			return nil, err
@@ -485,6 +491,37 @@ func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
 	return
 }
 
+func DbClearCache() (cleared_len int, err error) {
+	redisClient := GetRedisClient()
+	var cursor uint64
+	var n int
+	for {
+		var keys []string
+		var err error
+		keys, cursor, err = redisClient.Scan(context.TODO(), cursor, fmt.Sprintf("%s*", PREFIX_LOC_API), 15).Result()
+		if err != nil {
+			return n, err
+		}
+
+		n += len(keys)
+		if len(keys) > 0 {
+			for _, key := range keys {
+				_, err = redisClient.Del(context.TODO(), key).Result()
+				if err != nil {
+					return n, err
+				}
+			}
+		} else {
+			break
+		}
+
+		if cursor == 0 {
+			break
+		}
+	}
+	return n, nil
+}
+
 func dbLocationGrabFreshAPI(loc_id string) (venue foursquare.Venue, err error) {
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/%s?client_id=%s&client_secret=%s&v=%s",
@@ -505,6 +542,8 @@ func dbLocationGrabFreshAPI(loc_id string) (venue foursquare.Venue, err error) {
 	if err != nil {
 		return
 	}
+
+	log.Println(string(body))
 
 	// Turn the response into a struct
 	respObj := &foursquare.VenueRequestResponse{}

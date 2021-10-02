@@ -10,7 +10,7 @@ var _rfedisClient *redis.ClusterClient
 func LoadRedisClient() {
 	_rfedisClient = redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:         []string{"mealswipe-cluster-redis-cluster:6379"},
-		Password:      "gvSKYRLzac",
+		Password:      "qrDMS6jKt4",
 		RouteRandomly: true,
 	})
 }

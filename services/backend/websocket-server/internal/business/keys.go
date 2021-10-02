@@ -12,6 +12,7 @@ const KEY_SESSION_USERS_ACTIVE string = "users:active"
 const KEY_SESSION_VOTEIND string = "voteind"
 const KEY_SESSION_USERS_NICKNAMES string = "users:nicknames"
 const KEY_USER_VOTES string = "votes"
+const PREFIX_LOC_API string = "loc:api:"
 
 func BuildSessionKey(sessionId string, post string) string {
 	if post != "" {
@@ -51,7 +52,7 @@ func BuildCodeKey(code string) string {
 
 func BuildLocKey(locid string) string {
 	if LOCATION_MODE_API {
-		return fmt.Sprintf("loc:api:%s", locid)
+		return fmt.Sprintf("%s%s", PREFIX_LOC_API, locid)
 	} else {
 		return fmt.Sprintf("loc.%s", locid) // TODO Change, but need to update the key in db
 	}
