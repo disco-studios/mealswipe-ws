@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -61,6 +62,7 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 	}
 
 	vals := hmget.Val()
+	log.Println("Locs loaded for", loc_id, vals)
 	miss := LOCATION_MODE_API && vals[0] == nil
 	if miss || DISABLE_CACHING {
 		// If the location wasn't in the DB, fetch it then mock a correct response
@@ -91,19 +93,19 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		tags := string(rawBytes)
 
 		// Map to expected DB returns
-		vals[0] = venue.Name                             // name
-		vals[1] = encodedPhotos                          // photos (json string list)
-		vals[2] = venue.Location.Lat                     // lat
-		vals[3] = venue.Location.Lng                     // lng
-		vals[4] = ""                                     // chain // TODO see if we can get from API
-		vals[5] = venue.Location.Address                 // Address
-		vals[6] = venue.Price.Tier                       // price tier
-		vals[7] = venue.Rating / 2                       // rating
-		vals[8] = venue.RatingSignals                    // rating count
-		vals[9] = venue.Menu.MobileUrl                   // mobile menu url
-		vals[10] = venue.Menu.Url                        // menu url
-		vals[11] = venue.Colors.HighlightColor.Value     // highlight color
-		vals[12] = venue.Colors.HighlightTextColor.Value // highlight text color
+		vals[0] = venue.Name                                                // name
+		vals[1] = encodedPhotos                                             // photos (json string list)
+		vals[2] = venue.Location.Lat                                        // lat
+		vals[3] = venue.Location.Lng                                        // lng
+		vals[4] = ""                                                        // chain // TODO see if we can get from API
+		vals[5] = venue.Location.Address                                    // Address
+		vals[6] = strconv.Itoa(int(venue.Price.Tier))                       // price tier
+		vals[7] = strconv.FormatFloat(float64(venue.Rating/2), 'E', -1, 32) // rating
+		vals[8] = strconv.Itoa(int(venue.RatingSignals))                    // rating count
+		vals[9] = venue.Menu.MobileUrl                                      // mobile menu url
+		vals[10] = venue.Menu.Url                                           // menu url
+		vals[11] = strconv.Itoa(int(venue.Colors.HighlightColor.Value))     // highlight color
+		vals[12] = strconv.Itoa(int(venue.Colors.HighlightTextColor.Value)) // highlight text color
 		vals[13] = tags
 	} else {
 		log.Println("> Cache hit", loc_id)
@@ -154,18 +156,39 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 	}
 	var priceTier int32
 	switch vals[6].(type) {
-	case int32:
-		priceTier = vals[6].(int32)
+	case string:
+		priceTier64, err := strconv.ParseInt(vals[6].(string), 10, 32)
+		if err != nil {
+			log.Println(err)
+		} else {
+			priceTier = int32(priceTier64)
+		}
+	default:
+		log.Println("Missed priceTier", fmt.Sprintf("%T", vals[6]))
 	}
 	var rating float32
 	switch vals[7].(type) {
-	case float32:
-		rating = vals[7].(float32)
+	case string:
+		rating64, err := strconv.ParseFloat(vals[7].(string), 32)
+		if err != nil {
+			log.Println(err)
+		} else {
+			rating = float32(rating64)
+		}
+	default:
+		log.Println("Missed rating", fmt.Sprintf("%T", vals[7]))
 	}
 	var ratingCount int32
 	switch vals[8].(type) {
-	case int32:
-		ratingCount = vals[8].(int32)
+	case string:
+		ratingCount64, err := strconv.ParseInt(vals[8].(string), 10, 32)
+		if err != nil {
+			log.Println(err)
+		} else {
+			ratingCount = int32(ratingCount64)
+		}
+	default:
+		log.Println("Missed ratingCount", fmt.Sprintf("%T", vals[8]))
 	}
 	var mobileUrl string
 	switch vals[9].(type) {
@@ -179,15 +202,45 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 	}
 	var highlightColor int32
 	switch vals[11].(type) {
-	case int32:
-		highlightColor = vals[11].(int32)
+	case string:
+		highlightColor64, err := strconv.ParseInt(vals[11].(string), 10, 32)
+		if err != nil {
+			log.Println(err)
+		} else {
+			highlightColor = int32(highlightColor64)
+		}
+	default:
+		log.Println("Missed highlightColor", fmt.Sprintf("%T", vals[11]))
 	}
 	var textColor int32
 	switch vals[12].(type) {
-	case int32:
-		textColor = vals[12].(int32)
+	case string:
+		textColor64, err := strconv.ParseInt(vals[12].(string), 10, 32)
+		if err != nil {
+			log.Println(err)
+		} else {
+			textColor = int32(textColor64)
+		}
+	default:
+		log.Println("Missed textColor", fmt.Sprintf("%T", vals[12]))
 	}
 
+	log.Println("Pre-location:", loc_id)
+	log.Println("Index", index)
+	log.Println("Name", name)
+	log.Println("Photo", photo)
+	log.Println("Lat", lat)
+	log.Println("Lng", lng)
+	log.Println("Chain", chain)
+	log.Println("Address", address)
+	log.Println("PriceTier", priceTier)
+	log.Println("Rating", rating)
+	log.Println("RatingCount", ratingCount)
+	log.Println("MobileUrl", mobileUrl)
+	log.Println("Url", url)
+	log.Println("HighlightColor", highlightColor)
+	log.Println("TextColor", textColor)
+	log.Println("Tags", tags)
 	loc = &mealswipepb.Location{
 		Index:          index,
 		Name:           name,
@@ -205,6 +258,7 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		TextColor:      textColor,
 		Tags:           tags,
 	}
+	log.Println(">>", loc)
 	return
 }
 
@@ -466,6 +520,20 @@ func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
 
 	pipe := GetRedisClient().Pipeline()
 
+	log.Println("Loading", loc_id)
+	log.Println("\t> name", venue.Name)
+	log.Println("\t> photos", encodedPhotos)
+	log.Println("\t> latitude", venue.Location.Lat)
+	log.Println("\t> longitude", venue.Location.Lng)
+	log.Println("\t> address", venue.Location.Address)
+	log.Println("\t> priceTier", venue.Price.Tier)
+	log.Println("\t> rating", venue.Rating/2)
+	log.Println("\t> ratingCount", venue.RatingSignals)
+	log.Println("\t> mobileMenuUrl", venue.Menu.MobileUrl)
+	log.Println("\t> menuUrl", venue.Menu.Url)
+	log.Println("\t> highlightColor", venue.Colors.HighlightColor.Value)
+	log.Println("\t> textColor", venue.Colors.HighlightTextColor.Value)
+	log.Println("\t> tags", encodedTags)
 	pipe.HSet(context.TODO(), BuildLocKey(loc_id), map[string]interface{}{
 		"name":           venue.Name,
 		"photos":         encodedPhotos,
@@ -473,7 +541,7 @@ func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
 		"longitude":      venue.Location.Lng,
 		"address":        venue.Location.Address,
 		"priceTier":      venue.Price.Tier,
-		"rating":         venue.Rating,
+		"rating":         venue.Rating / 2,
 		"ratingCount":    venue.RatingSignals,
 		"mobileMenuUrl":  venue.Menu.MobileUrl,
 		"menuUrl":        venue.Menu.Url,
