@@ -6,20 +6,23 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/internal/common/logging"
 )
 
 func clearCache(c *gin.Context) {
+	logger := logging.Get()
 	params := c.Request.URL.Query()
 	if val, ok := params["token"]; ok {
 		if len(val) == 0 || val[0] != "skkNW4rdeqYcdsfjDSJFidsjfSDfqwoeokE" {
 			c.Status(404)
-			log.Println("User gave wrong token, sending them away")
+			logger.Info("User gave wrong token, sending them away", zap.Int("return", 404))
 			return
 		}
 	} else {
 		c.Status(404)
-		log.Println("User did not provide a token, sending them away")
+		logger.Info("User did not provide a token, sending them away", zap.Int("return", 404))
 		return
 	}
 
@@ -33,11 +36,18 @@ func clearCache(c *gin.Context) {
 }
 
 func main() {
+	logger, err := zap.NewProduction(zap.String("app", "ms-admin"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Sync()
+	logging.SetLogger(logger)
+
 	// Connect to redis
 	business.LoadRedisClient()
 
 	// Serve web server
-	log.Println("Starting...")
+	logger.Info("init")
 	router := gin.Default()
 
 	stats := router.Group("/admin")

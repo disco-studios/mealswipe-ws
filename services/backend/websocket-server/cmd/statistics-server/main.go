@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/internal/common/logging"
 )
 
 func generalStatistics(c *gin.Context) {
@@ -19,11 +21,17 @@ func generalStatistics(c *gin.Context) {
 }
 
 func main() {
+	logger, err := zap.NewProduction(zap.String("app", "ms-stat"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Sync()
+	logging.SetLogger(logger)
 	// Connect to redis
 	business.LoadRedisClient()
 
 	// Serve web server
-	log.Println("Starting...")
+	logger.Info("init")
 	router := gin.Default()
 
 	stats := router.Group("/stats")
