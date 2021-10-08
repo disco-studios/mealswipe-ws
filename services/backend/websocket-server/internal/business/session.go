@@ -3,13 +3,15 @@ package business
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"go.uber.org/zap"
+	"mealswipe.app/mealswipe/internal/common/logging"
 )
 
 func DbSessionCreate(code string, sessionId string, userId string) (err error) {
+	logger := logging.Get()
 	pipe := GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
@@ -20,13 +22,14 @@ func DbSessionCreate(code string, sessionId string, userId string) (err error) {
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Println("can't create")
+		logger.Error("failed to create a session in db", zap.Error(err), logging.Code(code), logging.SessionId(sessionId), logging.UserId(userId))
 		return
 	}
 	return
 }
 
 func DbSessionJoinById(userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
+	logger := logging.Get()
 	pipe := GetRedisClient().Pipeline()
 	timeToLive := time.Hour * 24
 
@@ -40,7 +43,7 @@ func DbSessionJoinById(userId string, sessionId string, nickname string, generic
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Println("can't join by id")
+		logger.Error("failed to create a session in db", zap.Error(err), logging.SessionId(sessionId), logging.UserId(userId))
 		return
 	}
 
@@ -58,12 +61,11 @@ func DbSessionGetIdFromCode(code string) (sessionId string, err error) {
 	return result.Val(), result.Err()
 }
 
-// TODO pull out
 func handleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<- string) {
 	for msg := range redisPubsub {
 		genericPubsub <- msg.Payload
 	}
-	log.Println("Redis PubSub cleaned up")
+	logging.Get().Debug("redis pubsub cleaned up") // TODO Session/user id here would be good
 }
 
 func reverseVenueIds(venues []string) []string {
@@ -74,13 +76,23 @@ func reverseVenueIds(venues []string) []string {
 }
 
 func DbSessionStart(code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
+	logger := logging.Get()
 	pipe := GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
 
 	venueIds, _, err := DbLocationIdsForLocation(lat, lng, radius, categoryId)
 	if err != nil {
-		log.Println("can't get start locations")
+		logger.Error(
+			"failed to get locations for session",
+			zap.Error(err),
+			logging.SessionId(sessionId),
+			logging.Code(code),
+			zap.Int32("radius", radius),
+			zap.Float64("lat", lat),
+			zap.Float64("lng", lng),
+			zap.String("category_id", categoryId),
+		)
 		return
 	}
 	if len(venueIds) == 0 {
@@ -92,13 +104,9 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64, rad
 	pipe.LPush(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), reverseVenueIds(venueIds))
 	pipe.Expire(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), timeToLive)
 
-	pipout, err := pipe.Exec(context.TODO())
+	pipeout, err := pipe.Exec(context.TODO())
 	if err != nil {
-		log.Println(BuildCodeKey(code), pipout[0].Err())
-		log.Println(BuildSessionKey(sessionId, KEY_SESSION_GAME_STATE), pipout[1].Err())
-		log.Println(BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), pipout[2].Err())
-		log.Println(BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), pipout[3].Err())
-		log.Println("can't start")
+		logger.Error("failed to send game start to db", zap.Error(err), logging.Code(code), logging.SessionId(sessionId), zap.Any("result", pipeout))
 		return
 	}
 
@@ -129,21 +137,22 @@ func DbSessionGetActiveUsers(sessionId string) (activeUsers []string, err error)
 }
 
 func DbSessionGetActiveNicknames(sessionId string) (activeNicknames []string, err error) {
+	logger := logging.Get()
 	activeUsers, err := DbSessionGetActiveUsers(sessionId)
 	if err != nil {
-		log.Println("can't get active users")
+		logger.Error("can't get active users for session", zap.Error(err), logging.SessionId(sessionId))
 		return
 	}
 
 	hGetAll := GetRedisClient().HGetAll(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_USERS_NICKNAMES))
 	if err = hGetAll.Err(); err != nil {
-		log.Println("can't get nicknames")
+		logger.Error("can't get nicknames for session", zap.Error(err), logging.SessionId(sessionId))
 		return
 	}
 
 	nicknamesMap := hGetAll.Val()
 	if err != nil {
-		log.Println("can't get nicknames val")
+		logger.Error("can't get nicknames val from result", zap.Error(err), logging.SessionId(sessionId))
 		return
 	}
 

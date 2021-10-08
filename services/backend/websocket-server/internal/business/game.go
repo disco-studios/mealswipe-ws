@@ -2,14 +2,17 @@ package business
 
 import (
 	"context"
-	"log"
 	"strconv"
+
+	"go.uber.org/zap"
+	"mealswipe.app/mealswipe/internal/common/logging"
 )
 
 func DbGameCheckWin(sessionId string) (win bool, winningIndex int32, err error) {
+	logger := logging.Get()
 	activeUsers, err := DbSessionGetActiveUsers(sessionId)
 	if err != nil {
-		log.Println("can't get active users")
+		logger.Error("can't get active users", zap.Error(err), logging.SessionId(sessionId))
 		return
 	}
 
@@ -25,7 +28,7 @@ func DbGameCheckWin(sessionId string) (win bool, winningIndex int32, err error) 
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Println("can't tally votes")
+		logger.Error("can't tally votes", zap.Error(err), logging.SessionId(sessionId))
 		return
 	}
 
@@ -47,6 +50,8 @@ func DbGameSendVote(userId string, sessionId string, index int32, state bool) (e
 }
 
 func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
+	logger := logging.Get()
+
 	current := GetRedisClient().HGet(
 		context.TODO(),
 		BuildSessionKey(sessionId, KEY_SESSION_VOTEIND),
@@ -54,12 +59,13 @@ func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
 	)
 
 	if err = current.Err(); err != nil {
-		log.Println("can't get ind")
+		logger.Error("can't get next vote ind", zap.Error(err), logging.SessionId(sessionId), logging.UserId(userId))
 		return
 	}
 
 	index, err = strconv.Atoi(current.Val())
 	if err != nil {
+		logger.Error("failed to parse next vote ind to int", zap.Error(err), logging.SessionId(sessionId), logging.UserId(userId), zap.String("input", current.Val()))
 		return
 	}
 
@@ -71,7 +77,7 @@ func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
 			index+1,
 		)
 		if res.Err() != nil {
-			log.Println("failed to increment:", res.Err())
+			logger.Error("failed to increment users vote ind", zap.Error(res.Err()), logging.SessionId(sessionId), logging.UserId(userId))
 		}
 	}()
 

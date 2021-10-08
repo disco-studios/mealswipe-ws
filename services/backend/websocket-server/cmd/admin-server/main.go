@@ -28,7 +28,7 @@ func clearCache(c *gin.Context) {
 
 	cnt, err := business.DbClearCache()
 	if err != nil {
-		fmt.Println(err)
+		logger.Error("encountered an error clearing the cache", zap.Int("return", 500), zap.Error(err))
 		c.String(http.StatusInternalServerError, fmt.Sprintf("Removed %d from cache but encounted error %s", cnt, err.Error()))
 		return
 	}

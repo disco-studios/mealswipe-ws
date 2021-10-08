@@ -1,17 +1,17 @@
 package game
 
 import (
-	"log"
-
 	"mealswipe.app/mealswipe/internal/business"
+	"mealswipe.app/mealswipe/internal/common/logging"
 	"mealswipe.app/mealswipe/internal/core/users"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func CheckWin(userState *users.UserState) (err error) {
+	logger := logging.Get()
 	win, winIndex, err := business.DbGameCheckWin(userState.JoinedSessionId)
 	if err != nil {
-		log.Println(err)
+		logger.Error("failed to check for win", logging.SessionId(userState.JoinedSessionId))
 		return
 	}
 

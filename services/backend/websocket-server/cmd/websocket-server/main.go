@@ -27,10 +27,9 @@ func main() {
 
 	// Honestly not sure
 	flag.Parse()
-	log.SetFlags(0)
 
 	// Start the websocket server
 	logger.Info("init")
 	http.HandleFunc("/", websockets.WebsocketHandler)
-	log.Fatal(http.ListenAndServe(*addr, nil))
+	logger.Fatal("http server failed", zap.Error(http.ListenAndServe(*addr, nil)))
 }

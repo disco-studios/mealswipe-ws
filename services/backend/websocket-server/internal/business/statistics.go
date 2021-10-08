@@ -2,12 +2,15 @@ package business
 
 import (
 	"context"
-	"log"
 	"strconv"
+
+	"go.uber.org/zap"
+	"mealswipe.app/mealswipe/internal/common/logging"
 )
 
 // Tracks: Total right/left swipes at global and location level
 func StatsRegisterSwipe(sessionId string, index int32, right bool) (err error) {
+	logger := logging.Get()
 	locId, err := DbLocationIdFromInd(sessionId, index)
 	if err != nil {
 		return
@@ -29,7 +32,7 @@ func StatsRegisterSwipe(sessionId string, index int32, right bool) (err error) {
 	// Commit pipeline changes
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Println("can't register swipe statistic")
+		logger.Error("can't register swipe statistic for session", zap.Error(err), logging.SessionId(sessionId), zap.Int32("index", index), zap.Bool("right", right))
 		return
 	}
 	return
@@ -37,6 +40,7 @@ func StatsRegisterSwipe(sessionId string, index int32, right bool) (err error) {
 
 // Tracks: Number of games, number of players
 func StatsRegisterGameStart(sessionId string) (err error) {
+	logger := logging.Get()
 	activeUsers, err := DbSessionGetActiveUsers(sessionId)
 	if err != nil {
 		return
@@ -52,7 +56,7 @@ func StatsRegisterGameStart(sessionId string) (err error) {
 	// Commit pipeline changes
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Println("can't register game start statistic")
+		logger.Error("can't register game start statistic for session", zap.Error(err), logging.SessionId(sessionId))
 		return
 	}
 	return
@@ -60,6 +64,7 @@ func StatsRegisterGameStart(sessionId string) (err error) {
 
 // Tracks: Total right/left swipes at global and location level
 func StatsRegisterLocLoad(locId string, hit bool) (err error) {
+	logger := logging.Get()
 	pipe := GetRedisClient().Pipeline()
 
 	// Register the statistic on the location level
@@ -76,7 +81,7 @@ func StatsRegisterLocLoad(locId string, hit bool) (err error) {
 	// Commit pipeline changes
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		log.Println("can't register loc load statistic")
+		logger.Error("can't register load statistic for loc", zap.Error(err), logging.LocId(locId), zap.Bool("hit", hit))
 		return
 	}
 	return
@@ -97,8 +102,7 @@ type GeneralStatistics struct {
 }
 
 func DbGetStatistics() (stats *GeneralStatistics, err error) {
-	log.Println("Building pipe redis!")
-
+	logger := logging.Get()
 	pipe := GetRedisClient().Pipeline()
 
 	// Keep track of started games
@@ -109,13 +113,11 @@ func DbGetStatistics() (stats *GeneralStatistics, err error) {
 	totGamesReq := pipe.Get(context.TODO(), BuildStatisticKey("games_started_tot", ""))
 	totPlayersReq := pipe.Get(context.TODO(), BuildStatisticKey("games_started_pc", ""))
 
-	log.Println("Requesting redis!")
-
 	// Commit pipeline changes
-	_, err = pipe.Exec(context.TODO())
+	pipeout, err := pipe.Exec(context.TODO())
 	if err != nil {
-		log.Print("can't pull statistics")
-		// return
+		logger.Error("failed to pull statistics", zap.Error(err), zap.Any("pipeout", pipeout))
+		return
 	}
 
 	totSwipes, _ := strconv.Atoi(totSwipesReq.Val())
@@ -124,8 +126,6 @@ func DbGetStatistics() (stats *GeneralStatistics, err error) {
 	totHits, _ := strconv.Atoi(totHitsReq.Val())
 	totGames, _ := strconv.Atoi(totGamesReq.Val())
 	totPlayers, _ := strconv.Atoi(totPlayersReq.Val())
-
-	log.Println("Building obj!")
 
 	stats = &GeneralStatistics{
 		TotalSwipes:       totSwipes,
@@ -141,6 +141,5 @@ func DbGetStatistics() (stats *GeneralStatistics, err error) {
 		AvgSwipesGame:     float32(totSwipes) / float32(totGames),
 	}
 
-	log.Println("Returning stats to server!")
 	return
 }
