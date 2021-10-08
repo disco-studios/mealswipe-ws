@@ -21,7 +21,7 @@ func generalStatistics(c *gin.Context) {
 }
 
 func main() {
-	logger, err := zap.NewProduction(zap.String("app", "ms-stat"))
+	logger, err := zap.NewProduction(zap.Fields(zap.String("app", "ms-stat")))
 	if err != nil {
 		log.Fatal(err)
 	}

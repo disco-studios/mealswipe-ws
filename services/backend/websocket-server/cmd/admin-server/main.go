@@ -36,7 +36,7 @@ func clearCache(c *gin.Context) {
 }
 
 func main() {
-	logger, err := zap.NewProduction(zap.String("app", "ms-admin"))
+	logger, err := zap.NewProduction(zap.Fields(zap.String("app", "ms-admin")))
 	if err != nil {
 		log.Fatal(err)
 	}
