@@ -2,6 +2,7 @@ package websockets
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -53,7 +54,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	defer ensureCleanup(userState)
 	defer close(userState.PubsubChannel)
 	go pubsubPump(userState, userState.PubsubChannel)
-	logger.Info("new user connected", logging.UserId(userState.UserId))
+	logger.Info("new user connected", logging.UserId(userState.UserId), zap.String("nickname", userState.Nickname))
 
 	// Create a write channel to send messages to our websocket
 	writeChannel := make(chan *mealswipepb.WebsocketResponse, 5)
@@ -73,7 +74,7 @@ func pubsubPump(userState *users.UserState, messageQueue <-chan string) {
 		logger.Debug("redis message received", logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId), zap.String("message", message))
 
 		websocketResponse := &mealswipepb.WebsocketResponse{}
-		err := proto.Unmarshal([]byte(message), websocketResponse)
+		err := json.Unmarshal([]byte(message), websocketResponse) // We use the above as JSON, because we can, and it is easier to stringify
 		if err != nil {
 			logger.Error("pubsump pump failed to unmarshal protobuf", zap.Error(err))
 		} else {
