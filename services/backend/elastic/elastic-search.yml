@@ -1,7 +1,7 @@
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
-  name: quickstart
+  name: elastisearch-main
 spec:
   version: 7.15.0
   nodeSets:
@@ -18,4 +18,4 @@ spec:
           effect: "NoSchedule"
 
 
-# curl -u "elastic:$kpM91dk0dwZavX7887QF155w" -k "https://quickstart-es-http:9200"
+# curl -u "elastic:iV7k3cEQE18hfT2g4b838wg0" -k "https://quickstart-es-http:9200"

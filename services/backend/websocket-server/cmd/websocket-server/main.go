@@ -15,7 +15,10 @@ var addr = flag.String("addr", ":8080", "http service address")
 
 // TODO NULL SAFETY FROM PROTOBUF STUFF
 func main() {
-	logger, err := zap.NewProduction(zap.Fields(zap.String("app", "ms-ws")))
+	loggerConfig := zap.NewProductionConfig()
+	loggerConfig.EncoderConfig.TimeKey = "@timestamp"
+	loggerConfig.EncoderConfig.MessageKey = "message"
+	logger, err := loggerConfig.Build(zap.Fields(zap.String("app", "ms-ws")))
 	if err != nil {
 		log.Fatal(err)
 	}

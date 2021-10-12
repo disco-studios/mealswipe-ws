@@ -36,7 +36,10 @@ func clearCache(c *gin.Context) {
 }
 
 func main() {
-	logger, err := zap.NewProduction(zap.Fields(zap.String("app", "ms-admin")))
+	loggerConfig := zap.NewProductionConfig()
+	loggerConfig.EncoderConfig.TimeKey = "@timestamp"
+	loggerConfig.EncoderConfig.MessageKey = "message"
+	logger, err := loggerConfig.Build(zap.Fields(zap.String("app", "ms-admin")))
 	if err != nil {
 		log.Fatal(err)
 	}
