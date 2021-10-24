@@ -11,8 +11,8 @@ import (
 // Tracks: Total right/left swipes at global and location level
 func StatsRegisterSwipe(sessionId string, index int32, right bool) (err error) {
 	logger := logging.Get()
-	locId, err := DbLocationIdFromInd(sessionId, index)
-	if err != nil {
+	locId, _, err := DbLocationIdFromInd(sessionId, index)
+	if err != nil || len(locId) == 0 {
 		return
 	}
 

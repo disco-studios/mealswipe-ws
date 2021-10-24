@@ -3,7 +3,6 @@ package business
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -225,27 +224,59 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 	return
 }
 
-func DbLocationIdFromInd(sessionId string, index int32) (locId string, err error) {
-	get := GetRedisClient().LIndex(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), int64(index))
-	if err = get.Err(); err != nil {
+func DbLocationIdFromInd(sessionId string, index int32) (locId string, distanceVal string, err error) {
+	pipe := GetRedisClient().Pipeline()
+	location := pipe.LIndex(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), int64(index))
+	distance := pipe.LIndex(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATION_DISTANCES), int64(index))
+
+	_, err = pipe.Exec(context.TODO())
+	if err != nil {
+		if err == redis.Nil {
+			return "", "", nil
+		}
 		return
 	}
 
-	if len(get.Val()) == 0 {
-		err = errors.New("couldn't find loc id for index")
+	if err = location.Err(); err != nil {
+		if err == redis.Nil {
+			return "", "", nil
+		}
+		return
+	}
+	if err = distance.Err(); err != nil {
+		if err == redis.Nil {
+			return "", "", nil
+		}
 		return
 	}
 
-	return get.Val(), nil
+	return location.Val(), distance.Val(), nil
 }
 
 func DbLocationFromInd(sessionId string, index int32) (loc *mealswipepb.Location, err error) {
-	locId, err := DbLocationIdFromInd(sessionId, index)
+	locId, distance, err := DbLocationIdFromInd(sessionId, index)
 	if err != nil {
 		return nil, err
 	}
 
-	return DbLocationFromId(locId, index)
+	if len(locId) == 0 {
+		return &mealswipepb.Location{
+			OutOfLocations: true,
+		}, nil
+	}
+
+	loc, err = DbLocationFromId(locId, index)
+	if err != nil {
+		return
+	}
+
+	distInt, err := strconv.ParseInt(distance, 10, 32)
+	if err != nil {
+		logging.Get().Error("failed to convert distance to int", logging.SessionId(sessionId), logging.LocId(locId), zap.String("distance", distance))
+	}
+	loc.Distance = int32(distInt)
+
+	return
 }
 
 func DbLocationIdsForLocation(lat float64, lng float64, radius int32, categoryId string) (loc_id []string, distances []float64, err error) {

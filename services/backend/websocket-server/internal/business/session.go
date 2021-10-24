@@ -3,6 +3,7 @@ package business
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -69,7 +70,7 @@ func handleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<-
 	logging.Get().Debug("redis pubsub cleaned up") // TODO Session/user id here would be good
 }
 
-func reverseVenueIds(venues []string) []string {
+func reverse(venues []string) []string {
 	for i, j := 0, len(venues)-1; i < j; i, j = i+1, j-1 {
 		venues[i], venues[j] = venues[j], venues[i]
 	}
@@ -82,7 +83,7 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64, rad
 
 	timeToLive := time.Hour * 24
 
-	venueIds, _, err := DbLocationIdsForLocation(lat, lng, radius, categoryId)
+	venueIds, distances, err := DbLocationIdsForLocation(lat, lng, radius, categoryId)
 	if err != nil {
 		logger.Error(
 			"failed to get locations for session",
@@ -102,8 +103,16 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64, rad
 
 	pipe.Del(context.TODO(), BuildCodeKey(code))
 	pipe.Set(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_GAME_STATE), "RUNNING", timeToLive) // TODO pull RUNNING into constant
-	pipe.LPush(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), reverseVenueIds(venueIds))
+	pipe.LPush(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), reverse(venueIds))
+
+	var distanceStrings []string
+	for _, distance := range distances {
+		distanceStrings = append(distanceStrings, fmt.Sprintf("%d", int(distance)))
+	}
+
+	pipe.LPush(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATION_DISTANCES), reverse(distanceStrings))
 	pipe.Expire(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATIONS), timeToLive)
+	pipe.Expire(context.TODO(), BuildSessionKey(sessionId, KEY_SESSION_LOCATION_DISTANCES), timeToLive)
 
 	pipeout, err := pipe.Exec(context.TODO())
 	if err != nil {
