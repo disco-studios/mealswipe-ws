@@ -38,6 +38,18 @@ var ALLOWED_CATEGORIES = []string{
 
 const DISABLE_CACHING = false
 
+func convertStringNotNull(value interface{}) (result string, err error) {
+	switch res := value.(type) {
+	case string:
+		result = res
+	case nil:
+		return
+	default:
+		err = fmt.Errorf("expected string or null for conversion, got %T (%#v)", value, value)
+	}
+	return
+}
+
 func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	logger := logging.Get()
 
@@ -130,102 +142,67 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		json.Unmarshal([]byte(vals[13].(string)), &tags)
 	}
 
-	// TODO I feel like a disgusting human being for writing this, there must
-	// be a better way :(
-	var name string
-	switch vals[0].(type) {
-	case string:
-		name = vals[0].(string)
-	}
-	var lat string
-	switch vals[2].(type) {
-	case string:
-		lat = vals[2].(string)
-	}
-	var lng string
-	switch vals[3].(type) {
-	case string:
-		lng = vals[3].(string)
-	}
-	var chain string
-	switch vals[4].(type) {
-	case string:
-		chain = vals[4].(string)
-	}
-	var address string
-	switch vals[5].(type) {
-	case string:
-		address = vals[5].(string)
-	}
+	name, _ := convertStringNotNull(vals[0])
+	lat, _ := convertStringNotNull(vals[2])
+	lng, _ := convertStringNotNull(vals[3])
+	chain, _ := convertStringNotNull(vals[4])
+	address, _ := convertStringNotNull(vals[5])
+	mobileUrl, _ := convertStringNotNull(vals[9])
+	url, _ := convertStringNotNull(vals[10])
+
 	var priceTier int32
-	switch vals[6].(type) {
-	case string:
-		priceTier64, err := strconv.ParseInt(vals[6].(string), 10, 32)
+	priceTierString, _ := convertStringNotNull(vals[6])
+	if priceTierString != "" {
+		priceTier64, err := strconv.ParseInt(priceTierString, 10, 32)
 		if err != nil {
-			logger.Error("failed to convert priceTier to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
+			logger.Error("failed to convert priceTierString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
 		} else {
 			priceTier = int32(priceTier64)
 		}
-	default:
-		logger.Error("type switch missed priceTier when marshalling", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("type", fmt.Sprintf("%T", vals[6])))
 	}
+
 	var rating float32
-	switch vals[7].(type) {
-	case string:
-		rating64, err := strconv.ParseFloat(vals[7].(string), 32)
+	ratingString, _ := convertStringNotNull(vals[7])
+	if ratingString != "" {
+		rating64, err := strconv.ParseFloat(ratingString, 32)
 		if err != nil {
-			logger.Error("failed to convert rating to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[7]))
+			logger.Error("failed to convert ratingString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
 		} else {
 			rating = float32(rating64)
 		}
-	default:
-		logger.Error("type switch missed rating when marshalling", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("type", fmt.Sprintf("%T", vals[7])))
 	}
+
 	var ratingCount int32
-	switch vals[8].(type) {
-	case string:
-		ratingCount64, err := strconv.ParseInt(vals[8].(string), 10, 32)
+	ratingCountString, _ := convertStringNotNull(vals[8])
+	if ratingCountString != "" {
+		ratingCount64, err := strconv.ParseInt(ratingCountString, 10, 32)
 		if err != nil {
-			logger.Error("failed to convert ratingCount to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[8]))
+			logger.Error("failed to convert ratingCountString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
 		} else {
 			ratingCount = int32(ratingCount64)
 		}
-	default:
-		logger.Error("type switch missed ratingCount when marshalling", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("type", fmt.Sprintf("%T", vals[8])))
 	}
-	var mobileUrl string
-	switch vals[9].(type) {
-	case string:
-		mobileUrl = vals[9].(string)
-	}
-	var url string
-	switch vals[10].(type) {
-	case string:
-		url = vals[10].(string)
-	}
+
 	var highlightColor int32
-	switch vals[11].(type) {
-	case string:
-		highlightColor64, err := strconv.ParseInt(vals[11].(string), 10, 32)
+	highlightColorString, _ := convertStringNotNull(vals[11])
+	if highlightColorString != "" {
+		highlightColor64, err := strconv.ParseInt(highlightColorString, 10, 32)
 		if err != nil {
-			logger.Error("failed to convert highlightColor to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[11]))
+			logger.Error("failed to convert highlightColorString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
 		} else {
 			highlightColor = int32(highlightColor64)
 		}
-	default:
-		logger.Error("type switch missed highlightColor when marshalling", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("type", fmt.Sprintf("%T", vals[11])))
 	}
+
 	var textColor int32
-	switch vals[12].(type) {
-	case string:
-		textColor64, err := strconv.ParseInt(vals[12].(string), 10, 32)
+	textColorString, _ := convertStringNotNull(vals[12])
+	if textColorString != "" {
+		textColor64, err := strconv.ParseInt(textColorString, 10, 32)
 		if err != nil {
-			logger.Error("failed to convert textColor to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[12]))
+			logger.Error("failed to convert textColorString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
 		} else {
 			textColor = int32(textColor64)
 		}
-	default:
-		logger.Error("type switch missed textColor when marshalling", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("type", fmt.Sprintf("%T", vals[12])))
 	}
 
 	loc = &mealswipepb.Location{

@@ -19,7 +19,7 @@ func HandleMessageVote(userState *users.UserState, voteMessage *mealswipepb.Vote
 	logger.Info("user_vote",
 		logging.Metric("swipe_dir"),
 		zap.Bool("right", voteMessage.Vote),
-		logging.LocId(userState.JoinedSessionId),
+		logging.SessionId(userState.JoinedSessionId),
 		zap.Int32("index", voteMessage.Index),
 		logging.UserId(userState.UserId),
 	)

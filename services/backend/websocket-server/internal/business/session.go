@@ -52,6 +52,7 @@ func DbSessionJoinById(userId string, sessionId string, nickname string, generic
 	pubsubChannel := redisPubsub.Channel()
 	go handleRedisMessages(pubsubChannel, genericPubsub)
 
+	logger.Error("joined game", logging.SessionId(sessionId), logging.UserId(userId), zap.String("nickname", nickname))
 	return
 }
 

@@ -54,7 +54,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	defer ensureCleanup(userState)
 	defer close(userState.PubsubChannel)
 	go pubsubPump(userState, userState.PubsubChannel)
-	logger.Info("new user connected", logging.UserId(userState.UserId), zap.String("nickname", userState.Nickname))
+	logger.Info("new user connected", logging.UserId(userState.UserId))
 
 	// Create a write channel to send messages to our websocket
 	writeChannel := make(chan *mealswipepb.WebsocketResponse, 5)
