@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 	"mealswipe.app/mealswipe/internal/common/foursquare"
 	"mealswipe.app/mealswipe/internal/common/logging"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
@@ -37,47 +38,22 @@ var ALLOWED_CATEGORIES = []string{
 
 const DISABLE_CACHING = false
 
-func convertStringNotNull(value interface{}) (result string, err error) {
-	switch res := value.(type) {
-	case string:
-		result = res
-	case nil:
-		return
-	default:
-		err = fmt.Errorf("expected string or null for conversion, got %T (%#v)", value, value)
-	}
-	return
-}
-
 func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	logger := logging.Get()
 
-	hmget := GetRedisClient().HMGet(
-		context.TODO(),
-		BuildLocKey(loc_id),
-		"name",
-		"photos",
-		"latitude",
-		"longitude",
-		"chain_name",
-		"address",
-		"priceTier",
-		"rating",
-		"ratingCount",
-		"mobileMenuUrl",
-		"menuUrl",
-		"highlightColor",
-		"textColor",
-		"tags",
-	)
+	get := GetRedisClient().Get(context.TODO(), BuildLocKey(loc_id))
 
-	if err = hmget.Err(); err != nil {
-		logger.Error("failed to load loc from database", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index))
-		return
+	miss := false
+	if err = get.Err(); err != nil {
+		if err != redis.Nil {
+			logger.Error("failed to load loc from database", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index))
+			return
+		} else {
+			miss = true
+		}
 	}
 
-	vals := hmget.Val()
-	miss := LOCATION_MODE_API && vals[0] == nil
+	var locationStore *mealswipepb.LocationStore = &mealswipepb.LocationStore{}
 	if miss || DISABLE_CACHING {
 		// If the location wasn't in the DB, fetch it then mock a correct response
 		if DISABLE_CACHING {
@@ -85,142 +61,49 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		} else {
 			logger.Info("cache miss", zap.Bool("cache_hit", false), logging.LocId(loc_id), zap.Int32("index", index), logging.Metric("load_cache_hit"))
 		}
-		venue, err := dbLocationGrabFreshAPI(loc_id)
-		if err != nil {
-			return nil, err
-		}
 
-		encodedPhotos, err := locationPhotoJsonFromVenue(venue)
+		locationStore, err = dbLocationGrabFreshAPI(loc_id)
 		if err != nil {
-			return nil, err
+			return
 		}
-
-		// Map categories to tags
-		var tagsArr []string
-		for _, tag := range venue.Categories {
-			tagsArr = append(tagsArr, tag.ShortName)
-		}
-		rawBytes, err := json.Marshal(tagsArr)
-		if err != nil {
-			logger.Error("error marshalling tags from db values", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index))
-		}
-		tags := string(rawBytes)
-
-		// Map to expected DB returns
-		vals[0] = venue.Name                                                // name
-		vals[1] = encodedPhotos                                             // photos (json string list)
-		vals[2] = venue.Location.Lat                                        // lat
-		vals[3] = venue.Location.Lng                                        // lng
-		vals[4] = ""                                                        // chain // TODO see if we can get from API
-		vals[5] = venue.Location.Address                                    // Address
-		vals[6] = strconv.Itoa(int(venue.Price.Tier))                       // price tier
-		vals[7] = strconv.FormatFloat(float64(venue.Rating/2), 'E', -1, 32) // rating
-		vals[8] = strconv.Itoa(int(venue.RatingSignals))                    // rating count
-		vals[9] = venue.Menu.MobileUrl                                      // mobile menu url
-		vals[10] = venue.Menu.Url                                           // menu url
-		vals[11] = strconv.Itoa(int(venue.Colors.HighlightColor.Value))     // highlight color
-		vals[12] = strconv.Itoa(int(venue.Colors.HighlightTextColor.Value)) // highlight text color
-		vals[13] = tags
 	} else {
 		logger.Info("cache hit", zap.Bool("cache_hit", true), logging.LocId(loc_id), zap.Int32("index", index), logging.Metric("load_cache_hit"))
+
+		bytes, err := get.Bytes()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := proto.Unmarshal(bytes, locationStore); err != nil {
+			return nil, err
+		}
 	}
 
 	// Register statistics async
 	go StatsRegisterLocLoad(loc_id, miss)
 
-	var photo string
-	var photos []string
-	json.Unmarshal([]byte(vals[1].(string)), &photos)
-	if len(photos) > 0 {
-		photo = photos[0]
-	}
-
-	var tags []string
-	switch vals[13].(type) {
-	case string:
-		json.Unmarshal([]byte(vals[13].(string)), &tags)
-	}
-
-	name, _ := convertStringNotNull(vals[0])
-	lat, _ := convertStringNotNull(vals[2])
-	lng, _ := convertStringNotNull(vals[3])
-	chain, _ := convertStringNotNull(vals[4])
-	address, _ := convertStringNotNull(vals[5])
-	mobileUrl, _ := convertStringNotNull(vals[9])
-	url, _ := convertStringNotNull(vals[10])
-
-	var priceTier int32
-	priceTierString, _ := convertStringNotNull(vals[6])
-	if priceTierString != "" {
-		priceTier64, err := strconv.ParseInt(priceTierString, 10, 32)
-		if err != nil {
-			logger.Error("failed to convert priceTierString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
-		} else {
-			priceTier = int32(priceTier64)
-		}
-	}
-
-	var rating float32
-	ratingString, _ := convertStringNotNull(vals[7])
-	if ratingString != "" {
-		rating64, err := strconv.ParseFloat(ratingString, 32)
-		if err != nil {
-			logger.Error("failed to convert ratingString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
-		} else {
-			rating = float32(rating64)
-		}
-	}
-
-	var ratingCount int32
-	ratingCountString, _ := convertStringNotNull(vals[8])
-	if ratingCountString != "" {
-		ratingCount64, err := strconv.ParseInt(ratingCountString, 10, 32)
-		if err != nil {
-			logger.Error("failed to convert ratingCountString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
-		} else {
-			ratingCount = int32(ratingCount64)
-		}
-	}
-
-	var highlightColor int32
-	highlightColorString, _ := convertStringNotNull(vals[11])
-	if highlightColorString != "" {
-		highlightColor64, err := strconv.ParseInt(highlightColorString, 10, 32)
-		if err != nil {
-			logger.Error("failed to convert highlightColorString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
-		} else {
-			highlightColor = int32(highlightColor64)
-		}
-	}
-
-	var textColor int32
-	textColorString, _ := convertStringNotNull(vals[12])
-	if textColorString != "" {
-		textColor64, err := strconv.ParseInt(textColorString, 10, 32)
-		if err != nil {
-			logger.Error("failed to convert textColorString to value", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index), zap.Any("input", vals[6]))
-		} else {
-			textColor = int32(textColor64)
-		}
-	}
-
 	loc = &mealswipepb.Location{
 		Index:          index,
-		Name:           name,
-		Photo:          photo,
-		Lat:            lat,
-		Lng:            lng,
-		Chain:          chain,
-		Address:        address,
-		PriceTier:      priceTier,
-		Rating:         rating,
-		RatingCount:    ratingCount,
-		MobileUrl:      mobileUrl,
-		Url:            url,
-		HighlightColor: highlightColor,
-		TextColor:      textColor,
-		Tags:           tags,
+		Name:           locationStore.FoursquareLoc.Name,
+		Lat:            strconv.FormatFloat(locationStore.FoursquareLoc.Lat, 'E', -1, 64),
+		Lng:            strconv.FormatFloat(locationStore.FoursquareLoc.Lng, 'E', -1, 64),
+		Chain:          locationStore.FoursquareLoc.Chain,
+		Address:        locationStore.FoursquareLoc.Address,
+		PriceTier:      locationStore.FoursquareLoc.PriceTier,
+		Rating:         locationStore.FoursquareLoc.Rating,
+		RatingCount:    locationStore.FoursquareLoc.RatingCount,
+		MobileUrl:      locationStore.FoursquareLoc.MobileUrl,
+		Url:            locationStore.FoursquareLoc.Url,
+		HighlightColor: locationStore.FoursquareLoc.HighlightColor,
+		TextColor:      locationStore.FoursquareLoc.TextColor,
+		Tags:           locationStore.FoursquareLoc.Tags,
 	}
+
+	photos := locationStore.FoursquareLoc.Photos
+	if len(photos) > 0 {
+		loc.Photo = photos[0]
+	}
+
 	return
 }
 
@@ -313,14 +196,12 @@ func dbLocationIdsForLocationFlat(lat float64, lng float64, radius int32) (loc_i
 /*
 ** API implementation
  */
-func locationPhotoJsonFromVenue(venue foursquare.Venue) (encoded string, err error) { // TODO Convert to pointer
-	logger := logging.Get()
+func locationPhotosFromVenue(venue foursquare.Venue) (photos []string) { // TODO Convert to pointer
 	if len(venue.Photos.Groups) == 0 {
-		return "[]", nil
+		return
 	}
 
 	// Build list of photo URLs
-	var photos []string
 	for _, photo := range venue.Photos.Groups[0].Items {
 		photos = append(photos, fmt.Sprintf(
 			"%s1080x1920%s", //"%soriginal%s",
@@ -329,14 +210,6 @@ func locationPhotoJsonFromVenue(venue foursquare.Venue) (encoded string, err err
 		))
 	}
 
-	// Encode photo URLs into JSON to match DB format
-	photoBytes, err := json.Marshal(photos)
-	if err != nil {
-		logger.Error("failed to marshall photos string into json", zap.Error(err), zap.String("input", string(photoBytes)), logging.LocId(venue.Id), logging.LocName(venue.Name))
-		return
-	}
-
-	encoded = string(photoBytes)
 	return
 }
 
@@ -369,39 +242,28 @@ func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.
 
 	// Check our database for information about each location
 	pipe := GetRedisClient().Pipeline()
-	var cmds []*redis.SliceCmd
-	var ids []string
+	var cmds []*redis.StringCmd
+	// var ids []string
 	for _, venue := range uniqueNames {
-		ids = append(ids, venue.Id)
-		cmds = append(cmds, pipe.HMGet(
+		// ids = append(ids, venue.Id)
+		cmds = append(cmds, pipe.Get(
 			context.TODO(),
 			BuildLocKey(venue.Id),
-			"blacklist", // Blacklist, to see if we are ignoring this place
-			"name",      // Name, to see if it exists in db
 		))
 	}
 
-	_, err = pipe.Exec(context.TODO())
-	if err != nil {
-		logger.Error("optimal values failed to get locations from db", zap.Error(err), zap.Any("loc_ids", ids))
-		return nil, err
-	}
+	_, _ = pipe.Exec(context.TODO())
 
 	// Figure out hits and misses, while filtering out blacklisted locations
 	var hit []foursquare.Venue
 	var miss []foursquare.Venue
 	for ind, venue := range uniqueNames {
-		vals := cmds[ind].Val()
-		if vals[0] == nil {
-			// Location wasn't blacklisted! Now lets see if we have it saved
-			if vals[1] == nil {
-				miss = append(miss, venue)
-			} else {
-				hit = append(hit, venue)
-			}
+		if cmds[ind].Err() != nil {
+			miss = append(miss, venue)
 		} else {
-			logger.Info("skipping location because of blacklist", logging.LocName(venue.Name), logging.LocId(venue.Name))
+			hit = append(hit, venue)
 		}
+		// TODO Blacklist impl
 	}
 
 	// We now have a good set of hits and misses! Shuffle them out of distance sorted
@@ -491,53 +353,25 @@ func dbLocationIdsForLocationAPI(lat float64, lng float64, radius int32, _catego
 
 // TODO Make this take the standard array
 // TODO Make the standard array into a struct so she less messy (loc object probably)
-func dbLocationWriteVenue(loc_id string, venue foursquare.Venue) (err error) {
+func dbLocationWriteVenue(loc_id string, locationStore *mealswipepb.LocationStore) (err error) {
 	logger := logging.Get()
-	if venue.Name == "" {
-		logger.Warn("not saving location, looks incomplete", logging.LocId(loc_id), zap.Any("raw", venue))
+	if locationStore.FoursquareLoc.Name == "" {
+		logger.Warn("not saving location, looks incomplete", logging.LocId(loc_id), zap.Any("raw", locationStore))
 		return
 	}
 
-	encodedPhotos, err := locationPhotoJsonFromVenue(venue)
+	out, err := proto.Marshal(locationStore)
 	if err != nil {
-		return
+		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", locationStore))
 	}
 
-	var tags []string
-	for _, tag := range venue.Categories {
-		tags = append(tags, tag.ShortName)
-	}
-	tagBytes, err := json.Marshal(tags)
+	set := GetRedisClient().SetEX(context.TODO(), BuildLocKey(loc_id), out, time.Hour*24)
+
+	err = set.Err()
 	if err != nil {
-		logger.Error("failed to marshal tags array into json for db write", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", tags))
-		return
+		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", locationStore))
 	}
-	encodedTags := string(tagBytes)
 
-	pipe := GetRedisClient().Pipeline()
-
-	pipe.HSet(context.TODO(), BuildLocKey(loc_id), map[string]interface{}{
-		"name":           venue.Name,
-		"photos":         encodedPhotos,
-		"latitude":       venue.Location.Lat,
-		"longitude":      venue.Location.Lng,
-		"address":        venue.Location.Address,
-		"priceTier":      venue.Price.Tier,
-		"rating":         venue.Rating / 2,
-		"ratingCount":    venue.RatingSignals,
-		"mobileMenuUrl":  venue.Menu.MobileUrl,
-		"menuUrl":        venue.Menu.Url,
-		"highlightColor": venue.Colors.HighlightColor.Value,
-		"textColor":      venue.Colors.HighlightTextColor.Value,
-		"tags":           encodedTags,
-		// "chain_name": "", // TODO We can maybe get this
-	})
-	pipe.Expire(context.TODO(), BuildLocKey(loc_id), time.Hour*24) // We can only hold API data for 24 hours
-
-	_, err = pipe.Exec(context.TODO())
-	if err != nil {
-		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", tags))
-	}
 	return
 }
 
@@ -572,7 +406,7 @@ func DbClearCache() (cleared_len int, err error) {
 	return n, nil
 }
 
-func dbLocationGrabFreshAPI(loc_id string) (venue foursquare.Venue, err error) {
+func dbLocationGrabFreshAPI(loc_id string) (locationStore *mealswipepb.LocationStore, err error) {
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/%s?client_id=%s&client_secret=%s&v=%s",
 		loc_id, // venue ID
@@ -600,9 +434,50 @@ func dbLocationGrabFreshAPI(loc_id string) (venue foursquare.Venue, err error) {
 		return
 	}
 
-	venue = respObj.Response.Venue
+	venue := respObj.Response.Venue
+
+	// Map categories to tags
+	var tagsArr []string
+	for _, tag := range venue.Categories {
+		tagsArr = append(tagsArr, tag.ShortName)
+	}
+
+	// // Map to expected DB returns
+	// vals[0] = venue.Name                                                // name
+	// vals[1] = encodedPhotos                                             // photos (json string list)
+	// vals[2] = venue.Location.Lat                                        // lat
+	// vals[3] = venue.Location.Lng                                        // lng
+	// vals[4] = ""                                                        // chain // TODO see if we can get from API
+	// vals[5] = venue.Location.Address                                    // Address
+	// vals[6] = strconv.Itoa(int(venue.Price.Tier))                       // price tier
+	// vals[7] = strconv.FormatFloat(float64(venue.Rating/2), 'E', -1, 32) // rating
+	// vals[8] = strconv.Itoa(int(venue.RatingSignals))                    // rating count
+	// vals[9] = venue.Menu.MobileUrl                                      // mobile menu url
+	// vals[10] = venue.Menu.Url                                           // menu url
+	// vals[11] = strconv.Itoa(int(venue.Colors.HighlightColor.Value))     // highlight color
+	// vals[12] = strconv.Itoa(int(venue.Colors.HighlightTextColor.Value)) // highlight text color
+	// vals[13] = tags
+
+	locationStore = &mealswipepb.LocationStore{
+		FoursquareLoc: &mealswipepb.FoursquareLocation{
+			Name:           venue.Name,
+			Photos:         locationPhotosFromVenue(venue),
+			Lat:            venue.Location.Lat,
+			Lng:            venue.Location.Lng,
+			Address:        venue.Location.Address,
+			PriceTier:      venue.Price.Tier,
+			Rating:         venue.Rating / 2,
+			RatingCount:    int32(venue.RatingSignals),
+			MobileUrl:      venue.Menu.MobileUrl,
+			Url:            venue.Menu.Url,
+			HighlightColor: venue.Colors.HighlightColor.Value,
+			TextColor:      venue.Colors.HighlightTextColor.Value,
+			Tags:           tagsArr,
+		},
+	}
 
 	// Save the result and return a venue
 	// TODO This response shouldn't have to wait for the response from saving the venue
-	return venue, dbLocationWriteVenue(loc_id, venue)
+	err = dbLocationWriteVenue(loc_id, locationStore)
+	return
 }
