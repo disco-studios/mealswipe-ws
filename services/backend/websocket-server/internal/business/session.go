@@ -53,7 +53,7 @@ func DbSessionJoinById(userId string, sessionId string, nickname string, generic
 	pubsubChannel := redisPubsub.Channel()
 	go handleRedisMessages(pubsubChannel, genericPubsub)
 
-	logger.Info("user joined game", logging.SessionId(sessionId), logging.UserId(userId), zap.String("nickname", nickname))
+	logger.Info("user joined game", logging.SessionId(sessionId), logging.UserId(userId), zap.String("nickname", nickname), logging.Metric("user_join"))
 	return
 }
 
@@ -122,6 +122,8 @@ func DbSessionStart(code string, sessionId string, lat float64, lng float64, rad
 
 	// Register statistics async
 	go StatsRegisterGameStart(sessionId)
+
+	logger.Info("game started", logging.SessionId(sessionId), logging.Code(code), logging.Metric("game_start"), zap.Float64("lat", lat), zap.Float64("lon", lng))
 
 	return
 }

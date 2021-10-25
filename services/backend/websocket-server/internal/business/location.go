@@ -81,9 +81,9 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 	if miss || DISABLE_CACHING {
 		// If the location wasn't in the DB, fetch it then mock a correct response
 		if DISABLE_CACHING {
-			logger.Info("cache miss (forced)", zap.Bool("cache_hit", false), logging.LocId(loc_id), zap.Int32("index", index))
+			logger.Info("cache miss (forced)", zap.Bool("cache_hit", false), logging.LocId(loc_id), zap.Int32("index", index), logging.Metric("load_cache_hit"))
 		} else {
-			logger.Info("cache miss", zap.Bool("cache_hit", false), logging.LocId(loc_id), zap.Int32("index", index))
+			logger.Info("cache miss", zap.Bool("cache_hit", false), logging.LocId(loc_id), zap.Int32("index", index), logging.Metric("load_cache_hit"))
 		}
 		venue, err := dbLocationGrabFreshAPI(loc_id)
 		if err != nil {
@@ -122,7 +122,7 @@ func DbLocationFromId(loc_id string, index int32) (loc *mealswipepb.Location, er
 		vals[12] = strconv.Itoa(int(venue.Colors.HighlightTextColor.Value)) // highlight text color
 		vals[13] = tags
 	} else {
-		logger.Info("cache hit", zap.Bool("cache_hit", true), logging.LocId(loc_id), zap.Int32("index", index))
+		logger.Info("cache hit", zap.Bool("cache_hit", true), logging.LocId(loc_id), zap.Int32("index", index), logging.Metric("load_cache_hit"))
 	}
 
 	// Register statistics async
