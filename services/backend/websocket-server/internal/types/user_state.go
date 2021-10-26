@@ -1,4 +1,4 @@
-package users
+package types
 
 import (
 	"encoding/json"
@@ -6,9 +6,9 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-	"mealswipe.app/mealswipe/internal/business"
-	"mealswipe.app/mealswipe/internal/common/constants"
 	"mealswipe.app/mealswipe/internal/keys"
+	"mealswipe.app/mealswipe/internal/msredis"
+	"mealswipe.app/mealswipe/pkg/mealswipe"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
@@ -31,7 +31,7 @@ func (userState UserState) SendPubsubMessage(message string) (err error) {
 	if userState.JoinedSessionId == "" {
 		return errors.New("not currently in a session")
 	}
-	return business.DbPubsubWrite(keys.BuildSessionKey(userState.JoinedSessionId, ""), message)
+	return msredis.PubsubWrite(keys.BuildSessionKey(userState.JoinedSessionId, ""), message)
 }
 
 func (userState UserState) PubsubWebsocketResponse(websocketResponse *mealswipepb.WebsocketResponse) (err error) {
@@ -50,7 +50,7 @@ func (userState UserState) PubsubWebsocketResponse(websocketResponse *mealswipep
 
 func CreateUserState() *UserState {
 	userState := &UserState{}
-	userState.HostState = constants.HostState_UNIDENTIFIED
+	userState.HostState = mealswipe.HostState_UNIDENTIFIED
 	userState.UserId = "u-" + uuid.NewString()
 	userState.PubsubChannel = make(chan string, 5)
 

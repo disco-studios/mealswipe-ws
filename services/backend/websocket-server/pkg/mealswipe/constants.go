@@ -1,4 +1,4 @@
-package constants
+package mealswipe
 
 const (
 	HostState_UNIDENTIFIED = iota

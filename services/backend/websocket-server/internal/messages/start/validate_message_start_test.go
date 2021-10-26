@@ -5,8 +5,8 @@ package start
 // 	"testing"
 
 // 	"mealswipe.app/mealswipe/internal/business"
-// 	"mealswipe.app/mealswipe/internal/common/constants"
-// 	"mealswipe.app/mealswipe/internal/users"
+// 	"mealswipe.app/mealswipe/internal/constants"
+// 	"mealswipe.app/mealswipe/internal/types"
 // 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 // )
 

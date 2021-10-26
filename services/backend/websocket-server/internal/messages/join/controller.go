@@ -2,14 +2,13 @@ package join
 
 import (
 	"mealswipe.app/mealswipe/internal/common"
-	"mealswipe.app/mealswipe/internal/common/constants"
-	"mealswipe.app/mealswipe/internal/common/errors"
 	"mealswipe.app/mealswipe/internal/sessions"
-	"mealswipe.app/mealswipe/internal/users"
+	"mealswipe.app/mealswipe/internal/types"
+	"mealswipe.app/mealswipe/pkg/mealswipe"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func HandleMessage(userState *users.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
+func HandleMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
 
 	// Get the session ID for the given code
 	sessionId, err := sessions.GetIdFromCode(joinMessage.Code)
@@ -23,7 +22,7 @@ func HandleMessage(userState *users.UserState, joinMessage *mealswipepb.JoinMess
 	if err != nil {
 		return
 	}
-	userState.HostState = constants.HostState_JOINING
+	userState.HostState = mealswipe.HostState_JOINING
 
 	// Send the lobby info to the user
 	inLobbyNicknames, err := sessions.GetActiveNicknames(userState.JoinedSessionId)
@@ -39,9 +38,9 @@ func HandleMessage(userState *users.UserState, joinMessage *mealswipepb.JoinMess
 	return
 }
 
-var AcceptibleHostStates_Join = []int16{constants.HostState_UNIDENTIFIED}
+var AcceptibleHostStates_Join = []int16{mealswipe.HostState_UNIDENTIFIED}
 
-func ValidateMessage(userState *users.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
+func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
 	// Validate that the user is in a state that can do this action
 	validateHostError := common.ValidateHostState(userState, AcceptibleHostStates_Join)
 	if validateHostError != nil {
@@ -50,7 +49,7 @@ func ValidateMessage(userState *users.UserState, joinMessage *mealswipepb.JoinMe
 
 	// Validate that code is valid format
 	if !common.IsCodeValid(joinMessage.Code) {
-		return &errors.MessageValidationError{
+		return &mealswipe.MessageValidationError{
 			MessageType:   "join",
 			Clarification: "invalid code format",
 		}
@@ -61,7 +60,7 @@ func ValidateMessage(userState *users.UserState, joinMessage *mealswipepb.JoinMe
 	if err != nil {
 		return err
 	} else if !nicknameValid {
-		return &errors.MessageValidationError{
+		return &mealswipe.MessageValidationError{
 			MessageType:   "join",
 			Clarification: "invalid nickname",
 		}

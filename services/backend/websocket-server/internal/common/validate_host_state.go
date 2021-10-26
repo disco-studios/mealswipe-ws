@@ -1,17 +1,17 @@
 package common
 
 import (
-	"mealswipe.app/mealswipe/internal/common/errors"
-	"mealswipe.app/mealswipe/internal/users"
+	"mealswipe.app/mealswipe/internal/types"
+	"mealswipe.app/mealswipe/pkg/mealswipe"
 )
 
-func ValidateHostState(userState *users.UserState, allowed []int16) (err error) {
+func ValidateHostState(userState *types.UserState, allowed []int16) (err error) {
 	for _, allowedState := range allowed {
 		if userState.HostState == allowedState {
 			return
 		}
 	}
-	return &errors.InvalidHostStateError{
+	return &mealswipe.InvalidHostStateError{
 		Allowed:  allowed,
 		Received: userState.HostState,
 	}

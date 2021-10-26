@@ -5,7 +5,7 @@ import (
 	"github.com/google/uuid"
 	"mealswipe.app/mealswipe/internal/codes"
 	"mealswipe.app/mealswipe/internal/locations"
-	"mealswipe.app/mealswipe/internal/users"
+	"mealswipe.app/mealswipe/internal/types"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
@@ -21,7 +21,7 @@ func GetActiveNicknames(sessionId string) (activeNicknames []string, err error) 
 	return getActiveNicknames(sessionId)
 }
 
-func JoinById(userState *users.UserState, sessionId string, code string) (err error) {
+func JoinById(userState *types.UserState, sessionId string, code string) (err error) {
 	redisPubsub, err := joinById(userState.UserId, sessionId, userState.Nickname, userState.PubsubChannel)
 	if err != nil {
 		return
@@ -49,7 +49,7 @@ func Vote(userId string, sessionId string, index int32, state bool) (err error) 
 	return vote(userId, sessionId, index, state)
 }
 
-func CheckWin(userState *users.UserState) (err error) {
+func CheckWin(userState *types.UserState) (err error) {
 	win, winIndex, err := getWinIndex(userState.JoinedSessionId)
 	if err != nil {
 		return
@@ -91,7 +91,7 @@ func ReserveCode(sessionId string) (code string, err error) {
 	panic("Ran out of tries")
 }
 
-func Create(userState *users.UserState) (sessionID string, code string, err error) {
+func Create(userState *types.UserState) (sessionID string, code string, err error) {
 	sessionID = "s-" + uuid.NewString()
 	code, err = ReserveCode(sessionID)
 	if err != nil {
@@ -101,7 +101,7 @@ func Create(userState *users.UserState) (sessionID string, code string, err erro
 	return
 }
 
-func GetNextLocForUser(userState *users.UserState) (loc *mealswipepb.Location, err error) {
+func GetNextLocForUser(userState *types.UserState) (loc *mealswipepb.Location, err error) {
 	ind, err := nextVoteInd(userState.JoinedSessionId, userState.UserId)
 	if err != nil {
 		return
@@ -111,7 +111,7 @@ func GetNextLocForUser(userState *users.UserState) (loc *mealswipepb.Location, e
 	return
 }
 
-func SendNextLocToUser(userState *users.UserState) (err error) {
+func SendNextLocToUser(userState *types.UserState) (err error) {
 	loc, err := GetNextLocForUser(userState)
 	if err != nil {
 		return

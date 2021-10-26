@@ -1,4 +1,4 @@
-package foursquare
+package types
 
 import "sort"
 

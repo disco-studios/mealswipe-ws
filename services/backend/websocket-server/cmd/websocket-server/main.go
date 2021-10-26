@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"go.uber.org/zap"
-	"mealswipe.app/mealswipe/internal/common/logging"
+	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/msredis"
 	"mealswipe.app/mealswipe/internal/websockets"
 )

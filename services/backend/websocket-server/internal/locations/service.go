@@ -13,10 +13,10 @@ import (
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
-	"mealswipe.app/mealswipe/internal/common/foursquare"
-	"mealswipe.app/mealswipe/internal/common/logging"
 	"mealswipe.app/mealswipe/internal/keys"
+	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/msredis"
+	"mealswipe.app/mealswipe/internal/types"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
@@ -195,7 +195,7 @@ func IdsForLocationFlat(lat float64, lng float64, radius int32) (loc_ids []strin
 /*
 ** API implementation
  */
-func locationPhotosFromVenue(venue foursquare.Venue) (photos []string) { // TODO Convert to pointer
+func locationPhotosFromVenue(venue types.Venue) (photos []string) { // TODO Convert to pointer
 	if len(venue.Photos.Groups) == 0 {
 		return
 	}
@@ -212,21 +212,21 @@ func locationPhotosFromVenue(venue foursquare.Venue) (photos []string) { // TODO
 	return
 }
 
-func shuffleVenues(venues []foursquare.Venue) {
+func shuffleVenues(venues []types.Venue) {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(venues), func(i, j int) { venues[i], venues[j] = venues[j], venues[i] })
 }
 
-func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.Venue, err error) {
+func findOptimalVenues(venues []types.Venue) (resultingVenues []types.Venue, err error) {
 	logger := logging.Get()
 	// Sort by distance
-	foursquare.By(foursquare.Distance).Sort(venues)
+	types.By(types.Distance).Sort(venues)
 
 	// Filter out duplicate names. We don't want to pay for 2 Wawa or Dunkin Donut requests
 	// Since sorted by distance, we will keep the closest instance of a place
 	// Not perfect, may not have perfect match names or may be two places with same name. Close enough for now
-	seenNames := make(map[string]foursquare.Venue)
-	var uniqueNames []foursquare.Venue
+	seenNames := make(map[string]types.Venue)
+	var uniqueNames []types.Venue
 	for _, venue := range venues {
 		seenVenue, exists := seenNames[venue.Name]
 		if !exists {
@@ -254,8 +254,8 @@ func findOptimalVenues(venues []foursquare.Venue) (resultingVenues []foursquare.
 	_, _ = pipe.Exec(context.TODO())
 
 	// Figure out hits and misses, while filtering out blacklisted locations
-	var hit []foursquare.Venue
-	var miss []foursquare.Venue
+	var hit []types.Venue
+	var miss []types.Venue
 	for ind, venue := range uniqueNames {
 		if cmds[ind].Err() != nil {
 			miss = append(miss, venue)
@@ -327,7 +327,7 @@ func IdsForLocationAPI(lat float64, lng float64, radius int32, _categoryId strin
 	}
 
 	// Turn the response into a struct
-	respObj := &foursquare.LocationRequestResponse{}
+	respObj := &types.LocationRequestResponse{}
 	err = json.Unmarshal(body, &respObj)
 	if err != nil {
 		return
@@ -427,7 +427,7 @@ func GrabFreshAPI(loc_id string) (locationStore *mealswipepb.LocationStore, err 
 	}
 
 	// Turn the response into a struct
-	respObj := &foursquare.VenueRequestResponse{}
+	respObj := &types.VenueRequestResponse{}
 	err = json.Unmarshal(body, &respObj)
 	if err != nil {
 		return

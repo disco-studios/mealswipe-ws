@@ -2,16 +2,15 @@ package start
 
 import (
 	"mealswipe.app/mealswipe/internal/common"
-	"mealswipe.app/mealswipe/internal/common/constants"
-	"mealswipe.app/mealswipe/internal/common/errors"
 	"mealswipe.app/mealswipe/internal/sessions"
-	"mealswipe.app/mealswipe/internal/users"
+	"mealswipe.app/mealswipe/internal/types"
+	"mealswipe.app/mealswipe/pkg/mealswipe"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-var AcceptibleHostStates_Start = []int16{constants.HostState_HOSTING}
+var AcceptibleHostStates_Start = []int16{mealswipe.HostState_HOSTING}
 
-func HandleMessage(userState *users.UserState, startMessage *mealswipepb.StartMessage) (err error) {
+func HandleMessage(userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
 	err = sessions.Start(userState.JoinedSessionCode, userState.JoinedSessionId, startMessage.Lat, startMessage.Lng, startMessage.Radius, startMessage.CategoryId)
 	if err != nil {
 		return
@@ -26,7 +25,7 @@ func HandleMessage(userState *users.UserState, startMessage *mealswipepb.StartMe
 	return
 }
 
-func ValidateMessage(userState *users.UserState, startMessage *mealswipepb.StartMessage) (err error) {
+func ValidateMessage(userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
 	// Validate that the user is in a state that can do this action
 	validateHostError := common.ValidateHostState(userState, AcceptibleHostStates_Start)
 	if validateHostError != nil {
@@ -38,7 +37,7 @@ func ValidateMessage(userState *users.UserState, startMessage *mealswipepb.Start
 		return err
 	}
 	if !radiusValid {
-		return &errors.MessageValidationError{
+		return &mealswipe.MessageValidationError{
 			MessageType:   "start",
 			Clarification: "invalid radius",
 		}
@@ -46,7 +45,7 @@ func ValidateMessage(userState *users.UserState, startMessage *mealswipepb.Start
 
 	latLonValid := common.LatLonWithinUnitedStates(startMessage.Lat, startMessage.Lng)
 	if !latLonValid {
-		return &errors.MessageValidationError{
+		return &mealswipe.MessageValidationError{
 			MessageType:   "start",
 			Clarification: "invalid lat lng",
 		}
@@ -57,7 +56,7 @@ func ValidateMessage(userState *users.UserState, startMessage *mealswipepb.Start
 		return err
 	}
 	if sessionId != userState.JoinedSessionId {
-		return &errors.MessageValidationError{
+		return &mealswipe.MessageValidationError{
 			MessageType:   "start",
 			Clarification: "session code links to session other than joined",
 		}

@@ -1,6 +1,8 @@
 package msredis
 
 import (
+	"context"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/go-redis/redismock/v8"
 )
@@ -23,4 +25,8 @@ func LoadRedisMockClient() redismock.ClientMock {
 	var mock redismock.ClientMock
 	_, mock = redismock.NewClientMock()
 	return mock
+}
+
+func PubsubWrite(channel string, message string) (err error) {
+	return _rfedisClient.Publish(context.TODO(), channel, message).Err()
 }
