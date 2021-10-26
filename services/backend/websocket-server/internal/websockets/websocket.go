@@ -8,11 +8,9 @@ import (
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
-	mealswipe "mealswipe.app/mealswipe/internal"
 	"mealswipe.app/mealswipe/internal/common/logging"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/users"
-	"mealswipe.app/mealswipe/internal/validators"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
@@ -159,13 +157,13 @@ func readPump(connection *websocket.Conn, userState *users.UserState) {
 			return
 		}
 
-		err = validators.ValidateMessage(userState, genericMessage)
+		err = messages.ValidateMessage(userState, genericMessage)
 		if err != nil {
 			logger.Info("failed to validate message", logging.Metric("in_message_length"), zap.Any("raw", genericMessage), zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
 			return
 		}
 
-		err = mealswipe.HandleMessage(userState, genericMessage)
+		err = messages.HandleMessage(userState, genericMessage)
 		if err != nil {
 			// TODO Don't always die when we have an error, just sometimes
 			logger.Error("message handler encountered error", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId), zap.Any("raw", genericMessage))

@@ -1,13 +1,13 @@
-package validators
+package messages
 
 import (
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/common/errors"
-	"mealswipe.app/mealswipe/internal/create"
-	"mealswipe.app/mealswipe/internal/join"
-	"mealswipe.app/mealswipe/internal/start"
+	"mealswipe.app/mealswipe/internal/messages/create"
+	"mealswipe.app/mealswipe/internal/messages/join"
+	"mealswipe.app/mealswipe/internal/messages/start"
+	"mealswipe.app/mealswipe/internal/messages/vote"
 	"mealswipe.app/mealswipe/internal/users"
-	"mealswipe.app/mealswipe/internal/vote"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
