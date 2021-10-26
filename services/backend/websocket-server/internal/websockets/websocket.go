@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	mealswipe "mealswipe.app/mealswipe/internal"
 	"mealswipe.app/mealswipe/internal/common/logging"
-	database "mealswipe.app/mealswipe/internal/sessions"
+	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/users"
 	"mealswipe.app/mealswipe/internal/validators"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
@@ -81,7 +81,7 @@ func pubsubPump(userState *users.UserState, messageQueue <-chan string) {
 			userState.SendWebsocketMessage(websocketResponse)
 			if websocketResponse.GetGameStartedMessage() != nil {
 				for i := 0; i < 2; i++ {
-					err := database.SendNextLocToUser(userState)
+					err := sessions.SendNextLocToUser(userState)
 					if err != nil {
 						logger.Error("pumpsump pump failed to send next location to user", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
 					}

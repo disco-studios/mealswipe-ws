@@ -13,13 +13,13 @@ import (
 // TODO NULL SAFETY FROM PROTOBUF STUFF
 func HandleMessage(userState *users.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
 	if common.HasCreateMessage(genericMessage) {
-		return create.HandleMessageCreate(userState, genericMessage.GetCreateMessage())
+		return create.HandleMessage(userState, genericMessage.GetCreateMessage())
 	} else if common.HasJoinMessage(genericMessage) {
-		return join.HandleMessageJoin(userState, genericMessage.GetJoinMessage())
+		return join.HandleMessage(userState, genericMessage.GetJoinMessage())
 	} else if common.HasStartMessage(genericMessage) {
-		return start.HandleMessageStart(userState, genericMessage.GetStartMessage())
+		return start.HandleMessage(userState, genericMessage.GetStartMessage())
 	} else if common.HasVoteMessage(genericMessage) {
-		return vote.HandleMessageVote(userState, genericMessage.GetVoteMessage())
+		return vote.HandleMessage(userState, genericMessage.GetVoteMessage())
 	} else {
 		return nil // TODO No message provided by ther user!! Figure out what to do here
 	}

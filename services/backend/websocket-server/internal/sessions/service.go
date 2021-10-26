@@ -1,4 +1,4 @@
-package database
+package sessions
 
 import (
 	"context"
@@ -8,24 +8,22 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"mealswipe.app/mealswipe/internal/codes"
 	"mealswipe.app/mealswipe/internal/common/logging"
 	"mealswipe.app/mealswipe/internal/keys"
 	"mealswipe.app/mealswipe/internal/locations"
 	"mealswipe.app/mealswipe/internal/msredis"
-	"mealswipe.app/mealswipe/internal/users"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func GetIdFromCode(code string) (sessionId string, err error) {
+const MAX_CODE_ATTEMPTS int = 6 // 1-(1000000/(21^6))^6 = 0.999999999, aka almost certain with 1mil codes/day
+
+func getIdFromCode(code string) (sessionId string, err error) {
 	key := keys.BuildCodeKey(code)
 	result := msredis.GetRedisClient().Get(context.TODO(), key)
 	return result.Val(), result.Err()
 }
 
-func GetActiveUsers(sessionId string) (activeUsers []string, err error) {
+func getActiveUsers(sessionId string) (activeUsers []string, err error) {
 	hGetAll := msredis.GetRedisClient().HGetAll(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE))
 	if err = hGetAll.Err(); err != nil {
 		return
@@ -45,7 +43,7 @@ func GetActiveUsers(sessionId string) (activeUsers []string, err error) {
 	return
 }
 
-func GetActiveNicknames(sessionId string) (activeNicknames []string, err error) {
+func getActiveNicknames(sessionId string) (activeNicknames []string, err error) {
 	activeUsers, err := GetActiveUsers(sessionId)
 	if err != nil {
 		return
@@ -68,7 +66,7 @@ func GetActiveNicknames(sessionId string) (activeNicknames []string, err error) 
 	return
 }
 
-func JoinById(userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
+func joinById(userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
 	pipe := msredis.GetRedisClient().Pipeline()
 	timeToLive := time.Hour * 24
 
@@ -93,13 +91,6 @@ func JoinById(userId string, sessionId string, nickname string, genericPubsub ch
 	return
 }
 
-func HandleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<- string) {
-	for msg := range redisPubsub {
-		genericPubsub <- msg.Payload
-	}
-	logging.Get().Debug("redis pubsub cleaned up") // TODO Session/user id here would be good
-}
-
 func reverse(venues []string) []string {
 	for i, j := 0, len(venues)-1; i < j; i, j = i+1, j-1 {
 		venues[i], venues[j] = venues[j], venues[i]
@@ -107,7 +98,7 @@ func reverse(venues []string) []string {
 	return venues
 }
 
-func Start(code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
+func start(code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
 	pipe := msredis.GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
@@ -141,7 +132,7 @@ func Start(code string, sessionId string, lat float64, lng float64, radius int32
 	return
 }
 
-func Vote(userId string, sessionId string, index int32, state bool) (err error) {
+func vote(userId string, sessionId string, index int32, state bool) (err error) {
 	voteBit := 0
 	if state {
 		voteBit = 1
@@ -150,7 +141,7 @@ func Vote(userId string, sessionId string, index int32, state bool) (err error) 
 	return msredis.GetRedisClient().SetBit(context.TODO(), keys.BuildVotesKey(sessionId, userId), int64(index), voteBit).Err()
 }
 
-func dbGameCheckWin(sessionId string) (win bool, winningIndex int32, err error) {
+func getWinIndex(sessionId string) (win bool, winningIndex int32, err error) {
 	activeUsers, err := GetActiveUsers(sessionId)
 	if err != nil {
 		return
@@ -176,47 +167,7 @@ func dbGameCheckWin(sessionId string) (win bool, winningIndex int32, err error) 
 	return
 }
 
-func CheckWin(userState *users.UserState) (err error) {
-	win, winIndex, err := dbGameCheckWin(userState.JoinedSessionId)
-	if err != nil {
-		return
-	}
-
-	if win {
-		var loc *mealswipepb.Location
-		loc, err = locations.FromInd(userState.JoinedSessionId, winIndex)
-		if err != nil {
-			return
-		}
-
-		err = userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
-			GameWinMessage: &mealswipepb.GameWinMessage{
-				Locations: []*mealswipepb.WinningLocation{
-					{
-						Location: loc,
-						Votes:    0, // TODO: Impl
-					},
-				},
-			},
-		})
-		if err != nil {
-			return
-		}
-	}
-	return
-}
-
-func Create(userState *users.UserState) (sessionID string, code string, err error) {
-	sessionID = "s-" + uuid.NewString()
-	code, err = reserveCode(sessionID)
-	if err != nil {
-		return
-	}
-	err = dbSessionCreate(code, sessionID, userState.UserId)
-	return
-}
-
-func dbSessionCreate(code string, sessionId string, userId string) (err error) {
+func create(code string, sessionId string, userId string) (err error) {
 	logger := logging.Get()
 	pipe := msredis.GetRedisClient().Pipeline()
 
@@ -234,9 +185,7 @@ func dbSessionCreate(code string, sessionId string, userId string) (err error) {
 	return
 }
 
-const MAX_CODE_ATTEMPTS int = 6 // 1-(1000000/(21^6))^6 = 0.999999999, aka almost certain with 1mil codes/day
-
-func dbCodeReserve(sessionId string, code string) (err error) {
+func attemptReserveCode(sessionId string, code string) (err error) {
 	res, err := msredis.GetRedisClient().SetNX(context.TODO(), keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
 	if !res {
 		return errors.New("key already exists")
@@ -244,27 +193,7 @@ func dbCodeReserve(sessionId string, code string) (err error) {
 	return
 }
 
-func reserveCode(sessionId string) (code string, err error) {
-	for i := 0; i < MAX_CODE_ATTEMPTS; i++ {
-		code = codes.EncodeRaw(codes.GenerateRandomRaw())
-		err = dbCodeReserve(sessionId, code)
-		if err == nil {
-			return
-		}
-	}
-	panic("Ran out of tries")
-}
-
-func DbGameSendVote(userId string, sessionId string, index int32, state bool) (err error) {
-	voteBit := 0
-	if state {
-		voteBit = 1
-	}
-
-	return msredis.GetRedisClient().SetBit(context.TODO(), keys.BuildVotesKey(sessionId, userId), int64(index), voteBit).Err()
-}
-
-func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
+func nextVoteInd(sessionId string, userId string) (index int, err error) {
 
 	current := msredis.GetRedisClient().HGet(
 		context.TODO(),
@@ -293,27 +222,5 @@ func DbGameNextVoteInd(sessionId string, userId string) (index int, err error) {
 		}
 	}()
 
-	return
-}
-
-func GetNextLocForUser(userState *users.UserState) (loc *mealswipepb.Location, err error) {
-	ind, err := DbGameNextVoteInd(userState.JoinedSessionId, userState.UserId)
-	if err != nil {
-		return
-	}
-
-	loc, err = locations.FromInd(userState.JoinedSessionId, int32(ind))
-	return
-}
-
-func SendNextLocToUser(userState *users.UserState) (err error) {
-	loc, err := GetNextLocForUser(userState)
-	if err != nil {
-		return
-	}
-
-	userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
-		Location: loc,
-	})
 	return
 }

@@ -14,13 +14,13 @@ import (
 // TODO Check for empty states
 func ValidateMessage(userState *users.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
 	if common.HasCreateMessage(genericMessage) {
-		return create.ValidateMessageCreate(userState, genericMessage.GetCreateMessage())
+		return create.ValidateMessage(userState, genericMessage.GetCreateMessage())
 	} else if common.HasJoinMessage(genericMessage) {
-		return join.ValidateMessageJoin(userState, genericMessage.GetJoinMessage())
+		return join.ValidateMessage(userState, genericMessage.GetJoinMessage())
 	} else if common.HasStartMessage(genericMessage) {
-		return start.ValidateMessageStart(userState, genericMessage.GetStartMessage())
+		return start.ValidateMessage(userState, genericMessage.GetStartMessage())
 	} else if common.HasVoteMessage(genericMessage) {
-		return vote.ValidateMessageVote(userState, genericMessage.GetVoteMessage())
+		return vote.ValidateMessage(userState, genericMessage.GetVoteMessage())
 	} else {
 		return &errors.UnknownWebsocketMessage{}
 	}
