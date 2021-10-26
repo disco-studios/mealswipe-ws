@@ -8,10 +8,10 @@ import (
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
+	mealswipe "mealswipe.app/mealswipe/internal"
 	"mealswipe.app/mealswipe/internal/common/logging"
-	"mealswipe.app/mealswipe/internal/core/locations"
-	"mealswipe.app/mealswipe/internal/core/users"
-	"mealswipe.app/mealswipe/internal/handlers"
+	database "mealswipe.app/mealswipe/internal/sessions"
+	"mealswipe.app/mealswipe/internal/users"
 	"mealswipe.app/mealswipe/internal/validators"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
@@ -81,7 +81,7 @@ func pubsubPump(userState *users.UserState, messageQueue <-chan string) {
 			userState.SendWebsocketMessage(websocketResponse)
 			if websocketResponse.GetGameStartedMessage() != nil {
 				for i := 0; i < 2; i++ {
-					err := locations.SendNextToUser(userState)
+					err := database.SendNextLocToUser(userState)
 					if err != nil {
 						logger.Error("pumpsump pump failed to send next location to user", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
 					}
@@ -165,7 +165,7 @@ func readPump(connection *websocket.Conn, userState *users.UserState) {
 			return
 		}
 
-		err = handlers.HandleMessage(userState, genericMessage)
+		err = mealswipe.HandleMessage(userState, genericMessage)
 		if err != nil {
 			// TODO Don't always die when we have an error, just sometimes
 			logger.Error("message handler encountered error", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId), zap.Any("raw", genericMessage))

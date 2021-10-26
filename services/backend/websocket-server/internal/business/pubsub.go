@@ -1,7 +1,11 @@
 package business
 
-import "context"
+import (
+	"context"
+
+	"mealswipe.app/mealswipe/internal/msredis"
+)
 
 func DbPubsubWrite(channel string, message string) (err error) {
-	return GetRedisClient().Publish(context.TODO(), channel, message).Err()
+	return msredis.GetRedisClient().Publish(context.TODO(), channel, message).Err()
 }

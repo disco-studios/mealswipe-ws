@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"go.uber.org/zap"
-	"mealswipe.app/mealswipe/internal/business"
 	"mealswipe.app/mealswipe/internal/common/logging"
+	"mealswipe.app/mealswipe/internal/msredis"
 	"mealswipe.app/mealswipe/internal/websockets"
 )
 
@@ -26,7 +26,7 @@ func main() {
 	logging.SetLogger(logger)
 
 	// Connect to redis
-	business.LoadRedisClient()
+	msredis.LoadRedisClient()
 
 	// Honestly not sure
 	flag.Parse()
