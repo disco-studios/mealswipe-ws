@@ -13,6 +13,7 @@ import (
 func attemptReserveCode(sessionId string, code string) (err error) {
 	res, err := msredis.GetRedisClient().SetNX(context.TODO(), keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
 	if !res {
+		// TODO This can probably be done better
 		return errors.New("key already exists")
 	}
 	return

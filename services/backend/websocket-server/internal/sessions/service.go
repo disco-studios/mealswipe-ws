@@ -8,9 +8,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/keys"
-	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/msredis"
 )
 
@@ -157,7 +155,6 @@ func getWinIndex(sessionId string) (win bool, winningIndex int32, err error) {
 }
 
 func create(code string, sessionId string, userId string) (err error) {
-	logger := logging.Get()
 	pipe := msredis.GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
@@ -168,7 +165,6 @@ func create(code string, sessionId string, userId string) (err error) {
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
-		logger.Error("failed to create a session in db", zap.Error(err), logging.Code(code), logging.SessionId(sessionId), logging.UserId(userId))
 		return
 	}
 	return
@@ -198,8 +194,9 @@ func nextVoteInd(sessionId string, userId string) (index int, err error) {
 			userId,
 			index+1,
 		)
-		if res.Err() != nil {
-			logging.Get().Error("failed to increment users vote ind", zap.Error(res.Err()), logging.SessionId(sessionId), logging.UserId(userId))
+		err = res.Err()
+		if err != nil {
+			return
 		}
 	}()
 
