@@ -40,47 +40,86 @@ var ALLOWED_CATEGORIES = []string{
 
 const DISABLE_CACHING = false
 
-func FromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
-	logger := logging.Get()
-
+func fromIdCached(loc_id string) (miss bool, locStore *mealswipepb.LocationStore, err error) {
 	get := msredis.GetRedisClient().Get(context.TODO(), keys.BuildLocKey(loc_id))
 
-	miss := false
-	if err = get.Err(); err != nil {
-		if err != redis.Nil {
-			logger.Error("failed to load loc from database", zap.Error(err), logging.LocId(loc_id), zap.Int32("index", index))
-			return
-		} else {
-			miss = true
-		}
+	err = get.Err()
+	if err == redis.Nil {
+		return true, nil, nil
+	} else if err != nil {
+		return
 	}
 
-	var locationStore *mealswipepb.LocationStore = &mealswipepb.LocationStore{}
-	if miss || DISABLE_CACHING {
-		// If the location wasn't in the DB, fetch it then mock a correct response
-		if DISABLE_CACHING {
-			logger.Info("cache miss (forced)", zap.Bool("cache_hit", false), logging.LocId(loc_id), zap.Int32("index", index), logging.Metric("load_cache_hit"))
-		} else {
-			logger.Info("cache miss", zap.Bool("cache_hit", false), logging.LocId(loc_id), zap.Int32("index", index), logging.Metric("load_cache_hit"))
-		}
-
-		locationStore, err = GrabFreshAPI(loc_id)
-		if err != nil {
-			return
-		}
-	} else {
-		logger.Info("cache hit", zap.Bool("cache_hit", true), logging.LocId(loc_id), zap.Int32("index", index), logging.Metric("load_cache_hit"))
-
-		bytes, err := get.Bytes()
-		if err != nil {
-			return nil, err
-		}
-
-		if err := proto.Unmarshal(bytes, locationStore); err != nil {
-			return nil, err
-		}
+	bytes, err := get.Bytes()
+	if err != nil {
+		return
 	}
 
+	locStore = &mealswipepb.LocationStore{}
+	if err = proto.Unmarshal(bytes, locStore); err != nil {
+		return
+	}
+
+	return
+}
+
+func fromIdFresh(loc_id string) (locationStore *mealswipepb.LocationStore, err error) {
+	requestUrl := fmt.Sprintf(
+		"https://api.foursquare.com/v2/venues/%s?client_id=%s&client_secret=%s&v=%s",
+		loc_id, // venue ID
+		"GGI531X4VKM04LSSKKX1XNHCRRXZL5PPXFLCGAW233SLVJ0J", // client id
+		"RQYEPCI2F4WSTCV1Y20V4IGBRDUMPLQBUARDBAVEEPGS12VJ", // client secret
+		"20210726", // version
+	)
+
+	// Make the request
+	resp, err := http.Get(requestUrl)
+	if err != nil {
+		return
+	}
+
+	// Read the bytes in from the response
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	// Turn the response into a struct
+	respObj := &types.VenueRequestResponse{}
+	err = json.Unmarshal(body, &respObj)
+	if err != nil {
+		return
+	}
+
+	venue := respObj.Response.Venue
+
+	// Map categories to tags
+	var tagsArr []string
+	for _, tag := range venue.Categories {
+		tagsArr = append(tagsArr, tag.ShortName)
+	}
+
+	locationStore = &mealswipepb.LocationStore{
+		FoursquareLoc: &mealswipepb.FoursquareLocation{
+			Name:           venue.Name,
+			Photos:         locationPhotosFromVenue(venue),
+			Lat:            venue.Location.Lat,
+			Lng:            venue.Location.Lng,
+			Address:        venue.Location.Address,
+			PriceTier:      venue.Price.Tier,
+			Rating:         venue.Rating / 2,
+			RatingCount:    int32(venue.RatingSignals),
+			MobileUrl:      venue.Menu.MobileUrl,
+			Url:            venue.Menu.Url,
+			HighlightColor: venue.Colors.HighlightColor.Value,
+			TextColor:      venue.Colors.HighlightTextColor.Value,
+			Tags:           tagsArr,
+		},
+	}
+	return
+}
+
+func fromStore(locationStore *mealswipepb.LocationStore, index int32) (loc *mealswipepb.Location, err error) {
 	loc = &mealswipepb.Location{
 		Index:          index,
 		Name:           locationStore.FoursquareLoc.Name,
@@ -106,7 +145,31 @@ func FromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	return
 }
 
-func IdFromInd(sessionId string, index int32) (locId string, distanceVal string, err error) {
+// TODO Make this take the standard array
+// TODO Make the standard array into a struct so she less messy (loc object probably)
+func writeLocationStore(loc_id string, locationStore *mealswipepb.LocationStore) (err error) {
+	logger := logging.Get()
+	if locationStore.FoursquareLoc.Name == "" {
+		logger.Warn("not saving location, looks incomplete", logging.LocId(loc_id), zap.Any("raw", locationStore))
+		return
+	}
+
+	out, err := proto.Marshal(locationStore)
+	if err != nil {
+		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", locationStore))
+	}
+
+	set := msredis.GetRedisClient().SetEX(context.TODO(), keys.BuildLocKey(loc_id), out, time.Hour*24)
+
+	err = set.Err()
+	if err != nil {
+		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", locationStore))
+	}
+
+	return
+}
+
+func idFromInd(sessionId string, index int32) (locId string, distanceVal string, err error) {
 	pipe := msredis.GetRedisClient().Pipeline()
 	location := pipe.LIndex(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), int64(index))
 	distance := pipe.LIndex(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), int64(index))
@@ -135,59 +198,41 @@ func IdFromInd(sessionId string, index int32) (locId string, distanceVal string,
 	return location.Val(), distance.Val(), nil
 }
 
-func FromInd(sessionId string, index int32) (loc *mealswipepb.Location, err error) {
-	locId, distance, err := IdFromInd(sessionId, index)
-	if err != nil {
-		return nil, err
-	}
+func getLocationsNear(lat float64, lng float64, radius int32, categoryId string) (respObj *types.LocationRequestResponse, err error) {
+	requestUrl := fmt.Sprintf(
+		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
+		"UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN", // client id
+		"3QD0PJNSFOJTWWLZCGO3ERHCTQEVA4L11LSEFFDLAOKFSDVR", // client secret
+		"20210726", // version
+		lat,        // lat
+		lng,        // lng
+		radius,     // radius (m)
+		categoryId, // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
+	)
 
-	if len(locId) == 0 {
-		return &mealswipepb.Location{
-			OutOfLocations: true,
-		}, nil
-	}
-
-	loc, err = FromId(locId, index)
+	// Make the request
+	resp, err := http.Get(requestUrl)
 	if err != nil {
 		return
 	}
 
-	distInt, err := strconv.ParseInt(distance, 10, 32)
+	// Read the bytes in from the response
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		logging.Get().Error("failed to convert distance to int", logging.SessionId(sessionId), logging.LocId(locId), zap.String("distance", distance))
+		return
 	}
-	loc.Distance = int32(distInt)
+
+	// Turn the response into a struct
+	respObj = &types.LocationRequestResponse{}
+	err = json.Unmarshal(body, &respObj)
 
 	return
 }
 
-func IdsForLocation(lat float64, lng float64, radius int32, categoryId string) (loc_id []string, distances []float64, err error) {
-	if LOCATION_MODE_API {
-		return IdsForLocationAPI(lat, lng, radius, categoryId)
-	} else {
-		return IdsForLocationFlat(lat, lng, radius)
-	}
-}
-
-/*
-** Flat file implementation
- */
-
-func IdsForLocationFlat(lat float64, lng float64, radius int32) (loc_ids []string, distances []float64, err error) {
-	// TODO Replace with GeoSearch when redis client supports it
-	geoRad := msredis.GetRedisClient().GeoRadius(context.TODO(), keys.BuildLocIndexKey("restaurants"), lng, lat, &redis.GeoRadiusQuery{
-		Radius:   float64(radius),
-		Unit:     "m",
-		WithDist: true,
-	})
-
-	if err = geoRad.Err(); err != nil {
-		return
-	}
-
-	for _, loc := range geoRad.Val() {
-		loc_ids = append(loc_ids, loc.Name)
-		distances = append(distances, loc.Dist)
+func venuesToArrays(venues []types.Venue) (locArray []string, distArray []float64) {
+	for _, venue := range venues {
+		locArray = append(locArray, venue.Id)
+		distArray = append(distArray, float64(venue.Location.Distance))
 	}
 	return
 }
@@ -292,89 +337,7 @@ func findOptimalVenues(venues []types.Venue) (resultingVenues []types.Venue, err
 	return
 }
 
-func IdsForLocationAPI(lat float64, lng float64, radius int32, _categoryId string) (loc_id []string, distances []float64, err error) {
-	categoryId := "4d4b7105d754a06374d81259" // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
-	if _categoryId != "" {
-		for _, allowedCategoryId := range ALLOWED_CATEGORIES {
-			if _categoryId == allowedCategoryId {
-				categoryId = _categoryId
-				break
-			}
-		}
-	}
-
-	requestUrl := fmt.Sprintf(
-		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
-		"UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN", // client id
-		"3QD0PJNSFOJTWWLZCGO3ERHCTQEVA4L11LSEFFDLAOKFSDVR", // client secret
-		"20210726", // version
-		lat,        // lat
-		lng,        // lng
-		radius,     // radius (m)
-		categoryId, // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
-	)
-
-	// Make the request
-	resp, err := http.Get(requestUrl)
-	if err != nil {
-		return
-	}
-
-	// Read the bytes in from the response
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	// Turn the response into a struct
-	respObj := &types.LocationRequestResponse{}
-	err = json.Unmarshal(body, &respObj)
-	if err != nil {
-		return
-	}
-
-	// Optimize the returned venues
-	venues, err := findOptimalVenues(respObj.Response.Venues)
-	if err != nil {
-		return
-	}
-
-	// Turn the result into an array of IDs and distances
-	var locArray []string
-	var distArray []float64
-	for _, venue := range venues {
-		locArray = append(locArray, venue.Id)
-		distArray = append(distArray, float64(venue.Location.Distance))
-	}
-
-	return locArray, distArray, nil
-}
-
-// TODO Make this take the standard array
-// TODO Make the standard array into a struct so she less messy (loc object probably)
-func WriteVenue(loc_id string, locationStore *mealswipepb.LocationStore) (err error) {
-	logger := logging.Get()
-	if locationStore.FoursquareLoc.Name == "" {
-		logger.Warn("not saving location, looks incomplete", logging.LocId(loc_id), zap.Any("raw", locationStore))
-		return
-	}
-
-	out, err := proto.Marshal(locationStore)
-	if err != nil {
-		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", locationStore))
-	}
-
-	set := msredis.GetRedisClient().SetEX(context.TODO(), keys.BuildLocKey(loc_id), out, time.Hour*24)
-
-	err = set.Err()
-	if err != nil {
-		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", locationStore))
-	}
-
-	return
-}
-
-func ClearCache() (cleared_len int, err error) {
+func clearCache() (cleared_len int, err error) {
 	redisClient := msredis.GetRedisClient()
 	var cursor uint64
 	var n int
@@ -403,80 +366,4 @@ func ClearCache() (cleared_len int, err error) {
 		}
 	}
 	return n, nil
-}
-
-func GrabFreshAPI(loc_id string) (locationStore *mealswipepb.LocationStore, err error) {
-	requestUrl := fmt.Sprintf(
-		"https://api.foursquare.com/v2/venues/%s?client_id=%s&client_secret=%s&v=%s",
-		loc_id, // venue ID
-		"GGI531X4VKM04LSSKKX1XNHCRRXZL5PPXFLCGAW233SLVJ0J", // client id
-		"RQYEPCI2F4WSTCV1Y20V4IGBRDUMPLQBUARDBAVEEPGS12VJ", // client secret
-		"20210726", // version
-	)
-
-	// Make the request
-	resp, err := http.Get(requestUrl)
-	if err != nil {
-		return
-	}
-
-	// Read the bytes in from the response
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	// Turn the response into a struct
-	respObj := &types.VenueRequestResponse{}
-	err = json.Unmarshal(body, &respObj)
-	if err != nil {
-		return
-	}
-
-	venue := respObj.Response.Venue
-
-	// Map categories to tags
-	var tagsArr []string
-	for _, tag := range venue.Categories {
-		tagsArr = append(tagsArr, tag.ShortName)
-	}
-
-	// // Map to expected DB returns
-	// vals[0] = venue.Name                                                // name
-	// vals[1] = encodedPhotos                                             // photos (json string list)
-	// vals[2] = venue.Location.Lat                                        // lat
-	// vals[3] = venue.Location.Lng                                        // lng
-	// vals[4] = ""                                                        // chain // TODO see if we can get from API
-	// vals[5] = venue.Location.Address                                    // Address
-	// vals[6] = strconv.Itoa(int(venue.Price.Tier))                       // price tier
-	// vals[7] = strconv.FormatFloat(float64(venue.Rating/2), 'E', -1, 32) // rating
-	// vals[8] = strconv.Itoa(int(venue.RatingSignals))                    // rating count
-	// vals[9] = venue.Menu.MobileUrl                                      // mobile menu url
-	// vals[10] = venue.Menu.Url                                           // menu url
-	// vals[11] = strconv.Itoa(int(venue.Colors.HighlightColor.Value))     // highlight color
-	// vals[12] = strconv.Itoa(int(venue.Colors.HighlightTextColor.Value)) // highlight text color
-	// vals[13] = tags
-
-	locationStore = &mealswipepb.LocationStore{
-		FoursquareLoc: &mealswipepb.FoursquareLocation{
-			Name:           venue.Name,
-			Photos:         locationPhotosFromVenue(venue),
-			Lat:            venue.Location.Lat,
-			Lng:            venue.Location.Lng,
-			Address:        venue.Location.Address,
-			PriceTier:      venue.Price.Tier,
-			Rating:         venue.Rating / 2,
-			RatingCount:    int32(venue.RatingSignals),
-			MobileUrl:      venue.Menu.MobileUrl,
-			Url:            venue.Menu.Url,
-			HighlightColor: venue.Colors.HighlightColor.Value,
-			TextColor:      venue.Colors.HighlightTextColor.Value,
-			Tags:           tagsArr,
-		},
-	}
-
-	// Save the result and return a venue
-	// TODO This response shouldn't have to wait for the response from saving the venue
-	err = WriteVenue(loc_id, locationStore)
-	return
 }
