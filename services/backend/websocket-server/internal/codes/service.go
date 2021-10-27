@@ -1,32 +1,29 @@
 package codes
 
 import (
-	"math"
+	"context"
+	"errors"
 	"math/rand"
 	"time"
+
+	"mealswipe.app/mealswipe/internal/keys"
+	"mealswipe.app/mealswipe/internal/msredis"
 )
 
-// vowels removed to reduce odds of bad words
-var SESSION_CODE_CHARSET []string = []string{
-	"B", "C", "D", "F", "G", "H", "J",
-	"K", "L", "M", "N", "P", "Q", "R",
-	"S", "T", "V", "W", "X", "Y", "Z",
+func attemptReserveCode(sessionId string, code string) (err error) {
+	res, err := msredis.GetRedisClient().SetNX(context.TODO(), keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
+	if !res {
+		return errors.New("key already exists")
+	}
+	return
 }
 
-const SESSION_CODE_LENGTH int = 6
-
-var SESSION_CODE_BASE = len(SESSION_CODE_CHARSET)
-var MAX_SESSION_CODE_RAW int = int(math.Pow(
-	float64(SESSION_CODE_BASE),
-	float64(SESSION_CODE_LENGTH),
-))
-
-func GenerateRandomRaw() int {
+func generateRandomRaw() int {
 	randSource := rand.NewSource(time.Now().UnixNano())
 	return rand.New(randSource).Intn(MAX_SESSION_CODE_RAW)
 }
 
-func EncodeRaw(rawCode int) string {
+func encodeRaw(rawCode int) string {
 	out := ""
 	for i := 0; i < SESSION_CODE_LENGTH; i++ {
 		out = SESSION_CODE_CHARSET[rawCode%SESSION_CODE_BASE] + out
@@ -35,7 +32,7 @@ func EncodeRaw(rawCode int) string {
 	return out
 }
 
-func DecodeRaw(code string) int {
+func decodeRaw(code string) int {
 	out := 0
 	// Go through each digit
 	for _, codeChar := range code {

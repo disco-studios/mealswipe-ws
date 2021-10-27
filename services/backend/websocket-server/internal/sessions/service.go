@@ -15,8 +15,6 @@ import (
 	"mealswipe.app/mealswipe/internal/msredis"
 )
 
-const MAX_CODE_ATTEMPTS int = 6 // 1-(1000000/(21^6))^6 = 0.999999999, aka almost certain with 1mil codes/day
-
 func getIdFromCode(code string) (sessionId string, err error) {
 	key := keys.BuildCodeKey(code)
 	result := msredis.GetRedisClient().Get(context.TODO(), key)
@@ -181,14 +179,6 @@ func create(code string, sessionId string, userId string) (err error) {
 	if err != nil {
 		logger.Error("failed to create a session in db", zap.Error(err), logging.Code(code), logging.SessionId(sessionId), logging.UserId(userId))
 		return
-	}
-	return
-}
-
-func attemptReserveCode(sessionId string, code string) (err error) {
-	res, err := msredis.GetRedisClient().SetNX(context.TODO(), keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
-	if !res {
-		return errors.New("key already exists")
 	}
 	return
 }

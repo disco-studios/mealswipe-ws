@@ -9,15 +9,15 @@ import (
 func TestEncode(t *testing.T) {
 	t.Run("decode yields encode input", func(t *testing.T) {
 		input := 124315
-		decoded := DecodeRaw(EncodeRaw(input))
+		decoded := decodeRaw(encodeRaw(input))
 		encodedEqualsDecoded(t, input, decoded)
 
 		input = 0
-		decoded = DecodeRaw(EncodeRaw(input))
+		decoded = decodeRaw(encodeRaw(input))
 		encodedEqualsDecoded(t, input, decoded)
 
 		input = MAX_SESSION_CODE_RAW - 1
-		decoded = DecodeRaw(EncodeRaw(input))
+		decoded = decodeRaw(encodeRaw(input))
 		encodedEqualsDecoded(t, input, decoded)
 	})
 }

@@ -80,20 +80,9 @@ func CheckWin(userState *types.UserState) (err error) {
 	return
 }
 
-func ReserveCode(sessionId string) (code string, err error) {
-	for i := 0; i < MAX_CODE_ATTEMPTS; i++ {
-		code = codes.EncodeRaw(codes.GenerateRandomRaw())
-		err = attemptReserveCode(sessionId, code)
-		if err == nil {
-			return
-		}
-	}
-	panic("Ran out of tries")
-}
-
 func Create(userState *types.UserState) (sessionID string, code string, err error) {
 	sessionID = "s-" + uuid.NewString()
-	code, err = ReserveCode(sessionID)
+	code, err = codes.Reserve(sessionID)
 	if err != nil {
 		return
 	}
