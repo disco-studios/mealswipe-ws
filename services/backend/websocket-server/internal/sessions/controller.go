@@ -1,6 +1,8 @@
 package sessions
 
 import (
+	"errors"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"mealswipe.app/mealswipe/internal/codes"
@@ -42,7 +44,17 @@ func HandleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<-
 }
 
 func Start(code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
-	return start(code, sessionId, lat, lng, radius, categoryId)
+
+	// TODO This write should maybe go into locs
+	venueIds, distances, err := locations.IdsForLocation(lat, lng, radius, categoryId)
+	if err != nil {
+		return
+	}
+	if len(venueIds) == 0 {
+		return errors.New("found no venues for loc")
+	}
+
+	return start(code, sessionId, venueIds, distances)
 }
 
 func Vote(userId string, sessionId string, index int32, state bool) (err error) {

@@ -10,7 +10,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/keys"
-	"mealswipe.app/mealswipe/internal/locations"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/msredis"
 )
@@ -96,18 +95,10 @@ func reverse(venues []string) []string {
 	return venues
 }
 
-func start(code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
+func start(code string, sessionId string, venueIds []string, distances []float64) (err error) {
 	pipe := msredis.GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
-
-	venueIds, distances, err := locations.IdsForLocation(lat, lng, radius, categoryId)
-	if err != nil {
-		return
-	}
-	if len(venueIds) == 0 {
-		return errors.New("found no venues for loc")
-	}
 
 	pipe.Del(context.TODO(), keys.BuildCodeKey(code))
 	pipe.Set(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_GAME_STATE), "RUNNING", timeToLive) // TODO pull RUNNING into constant
