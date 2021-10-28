@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -26,6 +27,7 @@ func GetActiveNicknames(sessionId string) (activeNicknames []string, err error) 
 func JoinById(userState *types.UserState, sessionId string, code string) (err error) {
 	redisPubsub, err := joinById(userState.UserId, sessionId, userState.Nickname, userState.PubsubChannel)
 	if err != nil {
+		err = fmt.Errorf("join by id: %w", err)
 		return
 	}
 
@@ -48,6 +50,7 @@ func Start(code string, sessionId string, lat float64, lng float64, radius int32
 	// TODO This write should maybe go into locs
 	venueIds, distances, err := locations.IdsForLocation(lat, lng, radius, categoryId)
 	if err != nil {
+		err = fmt.Errorf("get ids for location: %w", err)
 		return
 	}
 	if len(venueIds) == 0 {
@@ -64,6 +67,7 @@ func Vote(userId string, sessionId string, index int32, state bool) (err error) 
 func CheckWin(userState *types.UserState) (err error) {
 	win, winIndex, err := getWinIndex(userState.JoinedSessionId)
 	if err != nil {
+		err = fmt.Errorf("check win index: %w", err)
 		return
 	}
 
@@ -72,6 +76,7 @@ func CheckWin(userState *types.UserState) (err error) {
 		var loc *mealswipepb.Location
 		loc, err = locations.FromInd(userState.JoinedSessionId, winIndex)
 		if err != nil {
+			err = fmt.Errorf("winning location from ind: %w", err)
 			return
 		}
 

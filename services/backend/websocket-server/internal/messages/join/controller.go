@@ -1,6 +1,8 @@
 package join
 
 import (
+	"fmt"
+
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/types"
@@ -13,6 +15,7 @@ func HandleMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMess
 	// Get the session ID for the given code
 	sessionId, err := sessions.GetIdFromCode(joinMessage.Code)
 	if err != nil {
+		err = fmt.Errorf("get id from code: %w", err)
 		return
 	}
 
@@ -20,12 +23,16 @@ func HandleMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMess
 	userState.Nickname = joinMessage.Nickname
 	err = sessions.JoinById(userState, sessionId, joinMessage.Code)
 	if err != nil {
+		err = fmt.Errorf("join by id: %w", err)
 		return
 	}
 	userState.HostState = mealswipe.HostState_JOINING
 
 	// Send the lobby info to the user
 	inLobbyNicknames, err := sessions.GetActiveNicknames(userState.JoinedSessionId)
+	if err != nil {
+		err = fmt.Errorf("get active nicknames for lobby info: %w", err)
+	}
 
 	// Broadcast user join
 	userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
@@ -42,9 +49,10 @@ var AcceptibleHostStates_Join = []int16{mealswipe.HostState_UNIDENTIFIED}
 
 func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
 	// Validate that the user is in a state that can do this action
-	validateHostError := common.ValidateHostState(userState, AcceptibleHostStates_Join)
-	if validateHostError != nil {
-		return validateHostError
+	err = common.ValidateHostState(userState, AcceptibleHostStates_Join)
+	if err != nil {
+		err = fmt.Errorf("validate host state: %w", err)
+		return err
 	}
 
 	// Validate that code is valid format
@@ -58,6 +66,7 @@ func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMe
 	// Validate nickname
 	nicknameValid, err := common.IsNicknameValid(joinMessage.Nickname)
 	if err != nil {
+		err = fmt.Errorf("validate nickname: %w", err)
 		return err
 	} else if !nicknameValid {
 		return &mealswipe.MessageValidationError{
@@ -69,6 +78,7 @@ func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMe
 	// Validate that this session actually exists
 	sessionId, err := sessions.GetIdFromCode(joinMessage.Code)
 	if err != nil || sessionId == "" {
+		err = fmt.Errorf("get session id from code: %w", err)
 		return err
 	}
 

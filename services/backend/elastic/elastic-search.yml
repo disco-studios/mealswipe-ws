@@ -18,4 +18,4 @@ spec:
           effect: "NoSchedule"
 
 
-# curl -u "elastic:iV7k3cEQE18hfT2g4b838wg0" -k "https://quickstart-es-http:9200"
+# curl -u "elastic:eX3NrYYawifMquKnOs8fQDAo" -k "https://quickstart-es-http:9200"

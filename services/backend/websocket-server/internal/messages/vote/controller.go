@@ -1,6 +1,8 @@
 package vote
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/logging"
@@ -16,6 +18,7 @@ func HandleMessage(userState *types.UserState, voteMessage *mealswipepb.VoteMess
 	logger := logging.Get()
 	err = sessions.Vote(userState.UserId, userState.JoinedSessionId, voteMessage.Index, voteMessage.Vote)
 	if err != nil {
+		err = fmt.Errorf("vote: %w", err)
 		return
 	}
 
@@ -29,15 +32,19 @@ func HandleMessage(userState *types.UserState, voteMessage *mealswipepb.VoteMess
 	go sessions.CheckWin(userState) // TODO This could throw an error, figure out how to handle
 
 	err = sessions.SendNextLocToUser(userState)
+	if err != nil {
+		err = fmt.Errorf("send next loc: %w", err)
+	}
 
 	return err
 }
 
 func ValidateMessage(userState *types.UserState, voteMessage *mealswipepb.VoteMessage) (err error) {
 	// Validate that the user is in a state that can do this action
-	validateHostError := common.ValidateHostState(userState, AcceptibleHostStates_Vote)
-	if validateHostError != nil {
-		return validateHostError
+	err = common.ValidateHostState(userState, AcceptibleHostStates_Vote)
+	if err != nil {
+		err = fmt.Errorf("validate host state: %w", err)
+		return
 	}
 	return
 }

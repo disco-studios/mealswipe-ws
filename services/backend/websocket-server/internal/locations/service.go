@@ -47,16 +47,19 @@ func fromIdCached(loc_id string) (miss bool, locStore *mealswipepb.LocationStore
 	if err == redis.Nil {
 		return true, nil, nil
 	} else if err != nil {
+		err = fmt.Errorf("get from redis: %v", err)
 		return
 	}
 
 	bytes, err := get.Bytes()
 	if err != nil {
+		err = fmt.Errorf("message to bytes: %v", err)
 		return
 	}
 
 	locStore = &mealswipepb.LocationStore{}
 	if err = proto.Unmarshal(bytes, locStore); err != nil {
+		err = fmt.Errorf("unmarshal cached locstore: %v", err)
 		return
 	}
 
@@ -75,12 +78,14 @@ func fromIdFresh(loc_id string) (locationStore *mealswipepb.LocationStore, err e
 	// Make the request
 	resp, err := http.Get(requestUrl)
 	if err != nil {
+		err = fmt.Errorf("req loc from api: %v", err)
 		return
 	}
 
 	// Read the bytes in from the response
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		err = fmt.Errorf("reading loc from resp: %v", err)
 		return
 	}
 
@@ -88,6 +93,7 @@ func fromIdFresh(loc_id string) (locationStore *mealswipepb.LocationStore, err e
 	respObj := &types.VenueRequestResponse{}
 	err = json.Unmarshal(body, &respObj)
 	if err != nil {
+		err = fmt.Errorf("marshal response to venue obj: %v", err)
 		return
 	}
 
@@ -148,22 +154,21 @@ func fromStore(locationStore *mealswipepb.LocationStore, index int32) (loc *meal
 // TODO Make this take the standard array
 // TODO Make the standard array into a struct so she less messy (loc object probably)
 func writeLocationStore(loc_id string, locationStore *mealswipepb.LocationStore) (err error) {
-	logger := logging.Get()
 	if locationStore.FoursquareLoc.Name == "" {
-		logger.Warn("not saving location, looks incomplete", logging.LocId(loc_id), zap.Any("raw", locationStore))
+		err = fmt.Errorf("not caching, bad data: %s", loc_id)
 		return
 	}
 
 	out, err := proto.Marshal(locationStore)
 	if err != nil {
-		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", locationStore))
+		err = fmt.Errorf("marhsal locstore: %v", err)
 	}
 
 	set := msredis.GetRedisClient().SetEX(context.TODO(), keys.BuildLocKey(loc_id), out, time.Hour*24)
 
 	err = set.Err()
 	if err != nil {
-		logger.Error("failed to save location into redis", logging.LocId(loc_id), zap.Error(err), zap.Any("raw", locationStore))
+		err = fmt.Errorf("redis set: %v", err)
 	}
 
 	return
@@ -179,6 +184,7 @@ func idFromInd(sessionId string, index int32) (locId string, distanceVal string,
 		if err == redis.Nil {
 			return "", "", nil
 		}
+		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
 	}
 
@@ -186,12 +192,14 @@ func idFromInd(sessionId string, index int32) (locId string, distanceVal string,
 		if err == redis.Nil {
 			return "", "", nil
 		}
+		err = fmt.Errorf("location get from pipe: %v", err)
 		return
 	}
 	if err = distance.Err(); err != nil {
 		if err == redis.Nil {
 			return "", "", nil
 		}
+		err = fmt.Errorf("distance get from pipe: %v", err)
 		return
 	}
 
@@ -213,18 +221,24 @@ func getLocationsNear(lat float64, lng float64, radius int32, categoryId string)
 	// Make the request
 	resp, err := http.Get(requestUrl)
 	if err != nil {
+		err = fmt.Errorf("api req get: %v", err)
 		return
 	}
 
 	// Read the bytes in from the response
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		err = fmt.Errorf("read bytes from resp: %v", err)
 		return
 	}
 
 	// Turn the response into a struct
 	respObj = &types.LocationRequestResponse{}
 	err = json.Unmarshal(body, &respObj)
+	if err != nil {
+		err = fmt.Errorf("marshal response to venue obj: %v", err)
+		return
+	}
 
 	return
 }
@@ -346,6 +360,7 @@ func clearCache() (cleared_len int, err error) {
 		var err error
 		dbkeys, cursor, err = redisClient.Scan(context.TODO(), cursor, fmt.Sprintf("%s*", keys.PREFIX_LOC_API), 15).Result()
 		if err != nil {
+			err = fmt.Errorf("redis scan: %v", err)
 			return n, err
 		}
 
@@ -354,6 +369,7 @@ func clearCache() (cleared_len int, err error) {
 			for _, key := range dbkeys {
 				_, err = redisClient.Del(context.TODO(), key).Result()
 				if err != nil {
+					err = fmt.Errorf("redis delete: %v", err)
 					return n, err
 				}
 			}

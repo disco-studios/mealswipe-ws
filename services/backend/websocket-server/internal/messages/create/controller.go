@@ -1,6 +1,8 @@
 package create
 
 import (
+	"fmt"
+
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/types"
@@ -14,6 +16,7 @@ func HandleMessage(userState *types.UserState, createMessage *mealswipepb.Create
 	// Create session
 	sessionId, code, err := sessions.Create(userState)
 	if err != nil {
+		err = fmt.Errorf("sessions.Create: %w", err)
 		return
 	}
 
@@ -21,6 +24,7 @@ func HandleMessage(userState *types.UserState, createMessage *mealswipepb.Create
 	userState.Nickname = createMessage.Nickname
 	err = sessions.JoinById(userState, sessionId, code)
 	if err != nil {
+		err = fmt.Errorf("sessions.JoinById: %w", err)
 		return
 	}
 
@@ -46,6 +50,7 @@ func ValidateMessage(userState *types.UserState, createMessage *mealswipepb.Crea
 
 	nicknameValid, err := common.IsNicknameValid(createMessage.Nickname)
 	if err != nil {
+		err = fmt.Errorf("validate nickname: %w", err)
 		return err
 	} else if !nicknameValid {
 		return &mealswipe.MessageValidationError{

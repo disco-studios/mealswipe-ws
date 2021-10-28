@@ -1,6 +1,8 @@
 package messages
 
 import (
+	"fmt"
+
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/messages/create"
 	"mealswipe.app/mealswipe/internal/messages/join"
@@ -13,13 +15,29 @@ import (
 // TODO NULL SAFETY FROM PROTOBUF STUFF
 func HandleMessage(userState *types.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
 	if common.HasCreateMessage(genericMessage) {
-		return create.HandleMessage(userState, genericMessage.GetCreateMessage())
+		err = create.HandleMessage(userState, genericMessage.GetCreateMessage())
+		if err != nil {
+			err = fmt.Errorf("handle create message: %w", err)
+		}
+		return
 	} else if common.HasJoinMessage(genericMessage) {
-		return join.HandleMessage(userState, genericMessage.GetJoinMessage())
+		err = join.HandleMessage(userState, genericMessage.GetJoinMessage())
+		if err != nil {
+			err = fmt.Errorf("handle join message: %w", err)
+		}
+		return
 	} else if common.HasStartMessage(genericMessage) {
-		return start.HandleMessage(userState, genericMessage.GetStartMessage())
+		err = start.HandleMessage(userState, genericMessage.GetStartMessage())
+		if err != nil {
+			err = fmt.Errorf("handle start message: %w", err)
+		}
+		return
 	} else if common.HasVoteMessage(genericMessage) {
-		return vote.HandleMessage(userState, genericMessage.GetVoteMessage())
+		err = vote.HandleMessage(userState, genericMessage.GetVoteMessage())
+		if err != nil {
+			err = fmt.Errorf("handle vote message: %w", err)
+		}
+		return
 	} else {
 		return nil // TODO No message provided by ther user!! Figure out what to do here
 	}

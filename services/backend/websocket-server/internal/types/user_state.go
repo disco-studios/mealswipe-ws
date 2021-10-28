@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -29,7 +30,7 @@ func (userState UserState) SendWebsocketMessage(message *mealswipepb.WebsocketRe
 
 func (userState UserState) SendPubsubMessage(message string) (err error) {
 	if userState.JoinedSessionId == "" {
-		return errors.New("not currently in a session")
+		return errors.New("user not currently in a session")
 	}
 	return msredis.PubsubWrite(keys.BuildSessionKey(userState.JoinedSessionId, ""), message)
 }
@@ -38,11 +39,13 @@ func (userState UserState) PubsubWebsocketResponse(websocketResponse *mealswipep
 	var bytes []byte
 	bytes, err = json.Marshal(websocketResponse)
 	if err != nil {
+		err = fmt.Errorf("user marshal message for pubsub: %w", err)
 		return
 	}
 
 	err = userState.SendPubsubMessage(string(bytes))
 	if err != nil {
+		err = fmt.Errorf("send message on pubsub: %w", err)
 		return
 	}
 	return

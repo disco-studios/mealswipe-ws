@@ -2,6 +2,7 @@ package msredis
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/go-redis/redismock/v8"
@@ -28,5 +29,7 @@ func LoadRedisMockClient() redismock.ClientMock {
 }
 
 func PubsubWrite(channel string, message string) (err error) {
-	return _rfedisClient.Publish(context.TODO(), channel, message).Err()
+	err = _rfedisClient.Publish(context.TODO(), channel, message).Err()
+	err = fmt.Errorf("pubsub write: %v", err)
+	return
 }

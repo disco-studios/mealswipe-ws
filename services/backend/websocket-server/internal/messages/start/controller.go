@@ -1,6 +1,8 @@
 package start
 
 import (
+	"fmt"
+
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/types"
@@ -13,6 +15,7 @@ var AcceptibleHostStates_Start = []int16{mealswipe.HostState_HOSTING}
 func HandleMessage(userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
 	err = sessions.Start(userState.JoinedSessionCode, userState.JoinedSessionId, startMessage.Lat, startMessage.Lng, startMessage.Radius, startMessage.CategoryId)
 	if err != nil {
+		err = fmt.Errorf("start session: %w", err)
 		return
 	}
 
@@ -20,6 +23,7 @@ func HandleMessage(userState *types.UserState, startMessage *mealswipepb.StartMe
 		GameStartedMessage: &mealswipepb.GameStartedMessage{},
 	})
 	if err != nil {
+		err = fmt.Errorf("send game start message: %w", err)
 		return
 	}
 	return
@@ -27,14 +31,16 @@ func HandleMessage(userState *types.UserState, startMessage *mealswipepb.StartMe
 
 func ValidateMessage(userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
 	// Validate that the user is in a state that can do this action
-	validateHostError := common.ValidateHostState(userState, AcceptibleHostStates_Start)
-	if validateHostError != nil {
-		return validateHostError
+	err = common.ValidateHostState(userState, AcceptibleHostStates_Start)
+	if err != nil {
+		err = fmt.Errorf("validate host state: %w", err)
+		return
 	}
 
 	radiusValid, err := common.IsRadiusValid(startMessage.Radius)
 	if err != nil {
-		return err
+		err = fmt.Errorf("validate radius: %w", err)
+		return
 	}
 	if !radiusValid {
 		return &mealswipe.MessageValidationError{
@@ -53,6 +59,7 @@ func ValidateMessage(userState *types.UserState, startMessage *mealswipepb.Start
 
 	sessionId, err := sessions.GetIdFromCode(userState.JoinedSessionCode)
 	if err != nil || sessionId == "" {
+		err = fmt.Errorf("get id from code: %w", err)
 		return err
 	}
 	if sessionId != userState.JoinedSessionId {

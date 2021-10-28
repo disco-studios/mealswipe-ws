@@ -1,6 +1,7 @@
 package locations
 
 import (
+	"fmt"
 	"strconv"
 
 	"go.uber.org/zap"
@@ -17,11 +18,13 @@ func FromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	if miss {
 		locationStore, err = fromIdFresh(loc_id)
 		if err != nil {
+			err = fmt.Errorf("fromIdFresh: %w", err)
 			return
 		}
 
 		err = writeLocationStore(loc_id, locationStore)
 		if err != nil {
+			err = fmt.Errorf("writeLocationStore: %w", err)
 			return // TODO We can proceed here even if we fail to cache
 		}
 	}
@@ -32,6 +35,7 @@ func FromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 func FromInd(sessionId string, index int32) (loc *mealswipepb.Location, err error) {
 	locId, distance, err := idFromInd(sessionId, index)
 	if err != nil {
+		err = fmt.Errorf("idFromInd: %w", err)
 		return nil, err
 	}
 
@@ -43,11 +47,13 @@ func FromInd(sessionId string, index int32) (loc *mealswipepb.Location, err erro
 
 	loc, err = FromId(locId, index)
 	if err != nil {
+		err = fmt.Errorf("FromId: %w", err)
 		return
 	}
 
 	distInt, err := strconv.ParseInt(distance, 10, 32)
 	if err != nil {
+		err = fmt.Errorf("parse int: %v", err)
 		logging.Get().Error("failed to convert distance to int", logging.SessionId(sessionId), logging.LocId(locId), zap.String("distance", distance))
 	}
 	loc.Distance = int32(distInt)
@@ -68,12 +74,14 @@ func IdsForLocation(lat float64, lng float64, radius int32, _categoryId string) 
 
 	respObj, err := getLocationsNear(lat, lng, radius, categoryId)
 	if err != nil {
+		err = fmt.Errorf("getLocationsNear: %w", err)
 		return
 	}
 
 	// Optimize the returned venues
 	venues, err := findOptimalVenues(respObj.Response.Venues)
 	if err != nil {
+		err = fmt.Errorf("findOptimalValues: %w", err)
 		return
 	}
 

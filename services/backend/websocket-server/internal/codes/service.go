@@ -2,7 +2,6 @@ package codes
 
 import (
 	"context"
-	"errors"
 	"math/rand"
 	"time"
 
@@ -10,11 +9,19 @@ import (
 	"mealswipe.app/mealswipe/internal/msredis"
 )
 
+type CodeAlreadyExistsError struct {
+}
+
+func (e *CodeAlreadyExistsError) Error() string {
+	return "code already claimed"
+}
+
 func attemptReserveCode(sessionId string, code string) (err error) {
+	// TODO Handle this a bit better, we could miss errors
 	res, err := msredis.GetRedisClient().SetNX(context.TODO(), keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
 	if !res {
 		// TODO This can probably be done better
-		return errors.New("key already exists")
+		return &CodeAlreadyExistsError{}
 	}
 	return
 }

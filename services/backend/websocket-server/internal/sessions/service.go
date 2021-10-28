@@ -21,6 +21,7 @@ func getIdFromCode(code string) (sessionId string, err error) {
 func getActiveUsers(sessionId string) (activeUsers []string, err error) {
 	hGetAll := msredis.GetRedisClient().HGetAll(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE))
 	if err = hGetAll.Err(); err != nil {
+		err = fmt.Errorf("redis hgetall: %v", err)
 		return
 	}
 
@@ -41,16 +42,19 @@ func getActiveUsers(sessionId string) (activeUsers []string, err error) {
 func getActiveNicknames(sessionId string) (activeNicknames []string, err error) {
 	activeUsers, err := GetActiveUsers(sessionId)
 	if err != nil {
+		err = fmt.Errorf("get active users: %v", err)
 		return
 	}
 
 	hGetAll := msredis.GetRedisClient().HGetAll(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_NICKNAMES))
 	if err = hGetAll.Err(); err != nil {
+		err = fmt.Errorf("redis hgetall: %v", err)
 		return
 	}
 
 	nicknamesMap := hGetAll.Val()
 	if err != nil {
+		err = fmt.Errorf("nicknamesMap read: %v", err)
 		return
 	}
 
@@ -75,6 +79,7 @@ func joinById(userId string, sessionId string, nickname string, genericPubsub ch
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
+		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
 	}
 
@@ -113,6 +118,7 @@ func start(code string, sessionId string, venueIds []string, distances []float64
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
+		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
 	}
 
@@ -131,6 +137,7 @@ func vote(userId string, sessionId string, index int32, state bool) (err error) 
 func getWinIndex(sessionId string) (win bool, winningIndex int32, err error) {
 	activeUsers, err := GetActiveUsers(sessionId)
 	if err != nil {
+		err = fmt.Errorf("get active users: %w", err)
 		return
 	}
 
@@ -146,6 +153,7 @@ func getWinIndex(sessionId string) (win bool, winningIndex int32, err error) {
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
+		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
 	}
 
@@ -165,6 +173,7 @@ func create(code string, sessionId string, userId string) (err error) {
 
 	_, err = pipe.Exec(context.TODO())
 	if err != nil {
+		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
 	}
 	return
@@ -172,6 +181,7 @@ func create(code string, sessionId string, userId string) (err error) {
 
 func nextVoteInd(sessionId string, userId string) (index int, err error) {
 
+	// TODO Should we really store this in a set? Probably not
 	current := msredis.GetRedisClient().HGet(
 		context.TODO(),
 		keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTEIND),
@@ -179,11 +189,13 @@ func nextVoteInd(sessionId string, userId string) (index int, err error) {
 	)
 
 	if err = current.Err(); err != nil {
+		err = fmt.Errorf("redis hget: %v", err)
 		return
 	}
 
 	index, err = strconv.Atoi(current.Val())
 	if err != nil {
+		err = fmt.Errorf("convert string to int: %v", err)
 		return
 	}
 
@@ -196,6 +208,7 @@ func nextVoteInd(sessionId string, userId string) (index int, err error) {
 		)
 		err = res.Err()
 		if err != nil {
+			err = fmt.Errorf("setting redis vote ind: %v", err)
 			return
 		}
 	}()
