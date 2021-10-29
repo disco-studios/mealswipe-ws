@@ -30,6 +30,8 @@ func LoadRedisMockClient() redismock.ClientMock {
 
 func PubsubWrite(channel string, message string) (err error) {
 	err = _rfedisClient.Publish(context.TODO(), channel, message).Err()
-	err = fmt.Errorf("pubsub write: %v", err)
+	if err != nil {
+		err = fmt.Errorf("pubsub write: %v", err)
+	}
 	return
 }
