@@ -6,8 +6,10 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/codes"
 	"mealswipe.app/mealswipe/internal/locations"
+	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/types"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
@@ -25,6 +27,7 @@ func GetActiveNicknames(sessionId string) (activeNicknames []string, err error) 
 }
 
 func JoinById(userState *types.UserState, sessionId string, code string) (err error) {
+	logging.Get().Info("user joined session", logging.Metric("session_join"), zap.String("nickname", userState.Nickname), logging.UserId(userState.UserId), logging.SessionId(sessionId))
 	redisPubsub, err := joinById(userState.UserId, sessionId, userState.Nickname, userState.PubsubChannel)
 	if err != nil {
 		err = fmt.Errorf("join by id: %w", err)
@@ -46,6 +49,16 @@ func HandleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<-
 }
 
 func Start(code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
+	logging.Get().Info(
+		"game started",
+		logging.Metric("game_start"),
+		logging.Code(code),
+		logging.SessionId(sessionId),
+		zap.Float64("lat", lat),
+		zap.Float64("lng", lng),
+		zap.Int32("radius", radius),
+		zap.String("category", categoryId),
+	)
 
 	// TODO This write should maybe go into locs
 	venueIds, distances, err := locations.IdsForLocation(lat, lng, radius, categoryId)
@@ -79,6 +92,7 @@ func CheckWin(userState *types.UserState) (err error) {
 			err = fmt.Errorf("winning location from ind: %w", err)
 			return
 		}
+		// TODO Log winning loc
 
 		err = userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
 			GameWinMessage: &mealswipepb.GameWinMessage{
@@ -91,6 +105,7 @@ func CheckWin(userState *types.UserState) (err error) {
 			},
 		})
 		if err != nil {
+			err = fmt.Errorf("sending winning message: %w", err)
 			return
 		}
 	}

@@ -10,36 +10,49 @@ import (
 )
 
 func FromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
+	logger := logging.Get()
+
 	miss, locationStore, err := fromIdCached(loc_id)
 	if err != nil {
+		err = fmt.Errorf("getting loc from cache: %w", err)
 		return
 	}
 
 	if miss {
 		locationStore, err = fromIdFresh(loc_id)
 		if err != nil {
-			err = fmt.Errorf("fromIdFresh: %w", err)
+			err = fmt.Errorf("getting loc from api: %w", err)
 			return
 		}
 
 		err = writeLocationStore(loc_id, locationStore)
 		if err != nil {
-			err = fmt.Errorf("writeLocationStore: %w", err)
+			err = fmt.Errorf("writing loc to cache: %w", err)
 			return // TODO We can proceed here even if we fail to cache
 		}
 	}
 
-	return fromStore(locationStore, index)
+	logger.Info("location loaded", logging.Metric("loc_load"), zap.Bool("cache_hit", !miss), logging.LocId(loc_id))
+
+	loc, err = fromStore(locationStore, index)
+	if err != nil {
+		err = fmt.Errorf("getting loc from locstore: %w", err)
+		return
+	}
+	return
 }
 
 func FromInd(sessionId string, index int32) (loc *mealswipepb.Location, err error) {
+	logger := logging.Get()
+
 	locId, distance, err := idFromInd(sessionId, index)
 	if err != nil {
-		err = fmt.Errorf("idFromInd: %w", err)
+		err = fmt.Errorf("getting id for ind: %w", err)
 		return nil, err
 	}
 
 	if len(locId) == 0 {
+		logger.Info("ran out of locations", logging.Metric("out_of_locations"), logging.SessionId(sessionId), zap.Int("index", int(index)))
 		return &mealswipepb.Location{
 			OutOfLocations: true,
 		}, nil
@@ -47,14 +60,14 @@ func FromInd(sessionId string, index int32) (loc *mealswipepb.Location, err erro
 
 	loc, err = FromId(locId, index)
 	if err != nil {
-		err = fmt.Errorf("FromId: %w", err)
+		err = fmt.Errorf("getting loc from id: %w", err)
 		return
 	}
 
 	distInt, err := strconv.ParseInt(distance, 10, 32)
 	if err != nil {
 		err = fmt.Errorf("parse int: %v", err)
-		logging.Get().Error("failed to convert distance to int", logging.SessionId(sessionId), logging.LocId(locId), zap.String("distance", distance))
+		logger.Error("failed to convert distance to int", logging.SessionId(sessionId), logging.LocId(locId), zap.String("distance", distance))
 	}
 	loc.Distance = int32(distInt)
 

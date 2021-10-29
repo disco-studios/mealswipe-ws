@@ -3,7 +3,9 @@ package create
 import (
 	"fmt"
 
+	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/common"
+	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/types"
 	"mealswipe.app/mealswipe/pkg/mealswipe"
@@ -16,7 +18,7 @@ func HandleMessage(userState *types.UserState, createMessage *mealswipepb.Create
 	// Create session
 	sessionId, code, err := sessions.Create(userState)
 	if err != nil {
-		err = fmt.Errorf("sessions.Create: %w", err)
+		err = fmt.Errorf("create session: %w", err)
 		return
 	}
 
@@ -24,7 +26,7 @@ func HandleMessage(userState *types.UserState, createMessage *mealswipepb.Create
 	userState.Nickname = createMessage.Nickname
 	err = sessions.JoinById(userState, sessionId, code)
 	if err != nil {
-		err = fmt.Errorf("sessions.JoinById: %w", err)
+		err = fmt.Errorf("join session by id: %w", err)
 		return
 	}
 
@@ -43,9 +45,10 @@ func HandleMessage(userState *types.UserState, createMessage *mealswipepb.Create
 
 func ValidateMessage(userState *types.UserState, createMessage *mealswipepb.CreateMessage) (err error) {
 	// Validate that the user is in a state that can do this action
-	validateHostError := common.ValidateHostState(userState, AcceptibleHostStates_Create)
-	if validateHostError != nil {
-		return validateHostError
+	err = common.ValidateHostState(userState, AcceptibleHostStates_Create)
+	if err != nil {
+		err = fmt.Errorf("validate host state: %w", err)
+		return err
 	}
 
 	nicknameValid, err := common.IsNicknameValid(createMessage.Nickname)
@@ -53,6 +56,7 @@ func ValidateMessage(userState *types.UserState, createMessage *mealswipepb.Crea
 		err = fmt.Errorf("validate nickname: %w", err)
 		return err
 	} else if !nicknameValid {
+		logging.Get().Info("invalid nickname given", logging.Metric("bad_nickname"), zap.String("nickname", createMessage.Nickname))
 		return &mealswipe.MessageValidationError{
 			MessageType:   "create",
 			Clarification: "invalid nickname",

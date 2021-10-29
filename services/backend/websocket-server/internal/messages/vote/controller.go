@@ -34,9 +34,10 @@ func HandleMessage(userState *types.UserState, voteMessage *mealswipepb.VoteMess
 	err = sessions.SendNextLocToUser(userState)
 	if err != nil {
 		err = fmt.Errorf("send next loc: %w", err)
+		return
 	}
 
-	return err
+	return
 }
 
 func ValidateMessage(userState *types.UserState, voteMessage *mealswipepb.VoteMessage) (err error) {

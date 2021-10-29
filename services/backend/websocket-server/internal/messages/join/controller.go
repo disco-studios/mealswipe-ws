@@ -3,7 +3,9 @@ package join
 import (
 	"fmt"
 
+	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/common"
+	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/types"
 	"mealswipe.app/mealswipe/pkg/mealswipe"
@@ -48,6 +50,7 @@ func HandleMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMess
 var AcceptibleHostStates_Join = []int16{mealswipe.HostState_UNIDENTIFIED}
 
 func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
+	logger := logging.Get()
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Join)
 	if err != nil {
@@ -57,6 +60,7 @@ func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMe
 
 	// Validate that code is valid format
 	if !common.IsCodeValid(joinMessage.Code) {
+		logger.Info("invalid code given", logging.Metric("bad_code"), zap.String("code", joinMessage.Code))
 		return &mealswipe.MessageValidationError{
 			MessageType:   "join",
 			Clarification: "invalid code format",
@@ -69,6 +73,7 @@ func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMe
 		err = fmt.Errorf("validate nickname: %w", err)
 		return err
 	} else if !nicknameValid {
+		logger.Info("invalid nickname given", logging.Metric("bad_nickname"), zap.String("nickname", joinMessage.Nickname))
 		return &mealswipe.MessageValidationError{
 			MessageType:   "join",
 			Clarification: "invalid nickname",

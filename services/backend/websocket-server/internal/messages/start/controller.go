@@ -3,7 +3,9 @@ package start
 import (
 	"fmt"
 
+	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/common"
+	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/types"
 	"mealswipe.app/mealswipe/pkg/mealswipe"
@@ -30,6 +32,8 @@ func HandleMessage(userState *types.UserState, startMessage *mealswipepb.StartMe
 }
 
 func ValidateMessage(userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
+	logger := logging.Get()
+
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Start)
 	if err != nil {
@@ -39,6 +43,7 @@ func ValidateMessage(userState *types.UserState, startMessage *mealswipepb.Start
 
 	radiusValid, err := common.IsRadiusValid(startMessage.Radius)
 	if err != nil {
+		logger.Info("invalid radius given", logging.Metric("bad_radius"), zap.Int32("radius", startMessage.Radius))
 		err = fmt.Errorf("validate radius: %w", err)
 		return
 	}
@@ -51,6 +56,7 @@ func ValidateMessage(userState *types.UserState, startMessage *mealswipepb.Start
 
 	latLonValid := common.LatLonWithinUnitedStates(startMessage.Lat, startMessage.Lng)
 	if !latLonValid {
+		logger.Info("invalid lat lon given", logging.Metric("bad_lat_lng"), zap.Float64("lat", startMessage.Lat), zap.Float64("lng", startMessage.Lng))
 		return &mealswipe.MessageValidationError{
 			MessageType:   "start",
 			Clarification: "invalid lat lng",

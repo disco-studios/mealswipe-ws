@@ -162,6 +162,7 @@ func writeLocationStore(loc_id string, locationStore *mealswipepb.LocationStore)
 	out, err := proto.Marshal(locationStore)
 	if err != nil {
 		err = fmt.Errorf("marhsal locstore: %v", err)
+		return
 	}
 
 	set := msredis.GetRedisClient().SetEX(context.TODO(), keys.BuildLocKey(loc_id), out, time.Hour*24)
@@ -195,6 +196,7 @@ func idFromInd(sessionId string, index int32) (locId string, distanceVal string,
 		err = fmt.Errorf("location get from pipe: %v", err)
 		return
 	}
+
 	if err = distance.Err(); err != nil {
 		if err == redis.Nil {
 			return "", "", nil
@@ -292,7 +294,14 @@ func findOptimalVenues(venues []types.Venue) (resultingVenues []types.Venue, err
 			seenNames[venue.Name] = venue
 			uniqueNames = append(uniqueNames, venue)
 		} else {
-			logger.Info("skipping location because it has already been seen", logging.LocName(venue.Name), logging.LocId(venue.Name), zap.String("seen_name", seenVenue.Name), zap.String("seen_id", seenVenue.Id))
+			logger.Info(
+				"skipping location because it has already been seen",
+				logging.LocName(venue.Name),
+				logging.LocId(venue.Name),
+				zap.String("seen_name", seenVenue.Name),
+				zap.String("seen_id", seenVenue.Id),
+				logging.Metric("repeat_loc"),
+			)
 		}
 	}
 
@@ -325,7 +334,7 @@ func findOptimalVenues(venues []types.Venue) (resultingVenues []types.Venue, err
 	}
 
 	// We now have a good set of hits and misses! Shuffle them out of distance sorted
-	logger.Info("locations sorted into hit and miss", logging.Metric("hit_miss"), zap.Int("hits", len(hit)), zap.Int("misses", len(miss)), zap.Int("total", len(miss)+len(hit)))
+	logger.Info("locations sorted into hit and miss", logging.Metric("optimize_hit_miss"), zap.Int("hits", len(hit)), zap.Int("misses", len(miss)), zap.Int("total", len(miss)+len(hit)))
 	shuffleVenues(hit)
 	shuffleVenues(miss)
 
@@ -338,11 +347,11 @@ func findOptimalVenues(venues []types.Venue) (resultingVenues []types.Venue, err
 		preferHit = (len(hit) > 0) && preferHit
 
 		if preferHit {
-			logger.Info("location placed into index", logging.Metric("loc_pos"), zap.Int("index", i), zap.Bool("cache_hit", true), logging.LocId(hit[0].Id)) // TODO Session id here would be good
+			logger.Info("location placed into index", logging.Metric("loc_index"), zap.Int("index", i), zap.Bool("cache_hit", true), logging.LocId(hit[0].Id)) // TODO Session id here would be good
 			resultingVenues = append(resultingVenues, hit[0])
 			hit = hit[1:]
 		} else {
-			logger.Info("location placed into index", logging.Metric("loc_pos"), zap.Int("index", i), zap.Bool("cache_hit", false), logging.LocId(miss[0].Id))
+			logger.Info("location placed into index", logging.Metric("loc_index"), zap.Int("index", i), zap.Bool("cache_hit", false), logging.LocId(miss[0].Id))
 			resultingVenues = append(resultingVenues, miss[0])
 			miss = miss[1:]
 		}

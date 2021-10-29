@@ -3,6 +3,9 @@ package codes
 import (
 	"fmt"
 	"math"
+
+	"go.uber.org/zap"
+	"mealswipe.app/mealswipe/internal/logging"
 )
 
 const MAX_CODE_ATTEMPTS int = 6 // 1-(1000000/(21^6))^6 = 0.999999999, aka almost certain with 1mil codes/day
@@ -22,11 +25,15 @@ var MAX_SESSION_CODE_RAW int = int(math.Pow(
 ))
 
 func Reserve(sessionId string) (code string, err error) {
+	logger := logging.Get()
 	for i := 0; i < MAX_CODE_ATTEMPTS; i++ {
 		code = encodeRaw(generateRandomRaw())
 		err = attemptReserveCode(sessionId, code)
 		if err == nil { // TODO Handle errors other than the one we made
+			logger.Info("reserved code", logging.Metric("code_collision"), zap.Bool("collision", false), zap.Error(err))
 			return
+		} else {
+			logger.Info("failed to reserve code", logging.Metric("code_collision"), zap.Bool("collision", true), zap.Error(err))
 		}
 	}
 	err = fmt.Errorf("ran out of attempts: %w", err)
