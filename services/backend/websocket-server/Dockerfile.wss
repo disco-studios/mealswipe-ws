@@ -26,5 +26,9 @@ RUN cp /build/main .
 # # Export necessary port
 EXPOSE 8080
 
+ENV ELASTIC_APM_SERVICE_NAME=mealswipe-ws \
+    ELASTIC_APM_SERVER_URL=https://9bfda03478fb43cf8552a3178e82e463.apm.us-east-1.aws.cloud.es.io:443 \
+    ELASTIC_APM_SECRET_TOKEN=2nmMiRiidEavU8VXxJ
+
 # # Command to run when starting the container
 CMD ["/dist/main"]

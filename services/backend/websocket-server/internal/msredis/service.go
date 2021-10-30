@@ -6,7 +6,10 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/go-redis/redismock/v8"
+	apmgoredis "go.elastic.co/apm/module/apmgoredisv8"
 )
+
+const TRACE_REDIS bool = true
 
 var _rfedisClient *redis.ClusterClient
 
@@ -16,6 +19,9 @@ func LoadRedisClient() {
 		Password:      "qrDMS6jKt4",
 		RouteRandomly: true,
 	})
+	if TRACE_REDIS {
+		_rfedisClient.AddHook(apmgoredis.NewHook())
+	}
 }
 
 func GetRedisClient() *redis.ClusterClient {
