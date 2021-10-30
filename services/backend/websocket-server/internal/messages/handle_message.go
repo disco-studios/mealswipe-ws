@@ -38,7 +38,7 @@ func HandleMessage(userState *types.UserState, genericMessage *mealswipepb.Webso
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
 		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "join"))
-		err = join.HandleMessage(userState, genericMessage.GetJoinMessage())
+		err = join.HandleMessage(ctx, userState, genericMessage.GetJoinMessage())
 		if err != nil {
 			err = fmt.Errorf("handle join message: %w", err)
 		}
@@ -60,7 +60,7 @@ func HandleMessage(userState *types.UserState, genericMessage *mealswipepb.Webso
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
 		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "vote"))
-		err = vote.HandleMessage(userState, genericMessage.GetVoteMessage())
+		err = vote.HandleMessage(ctx, userState, genericMessage.GetVoteMessage())
 		if err != nil {
 			err = fmt.Errorf("handle vote message: %w", err)
 		}

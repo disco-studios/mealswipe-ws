@@ -1,6 +1,7 @@
 package locations
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -9,10 +10,10 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func FromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
+func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	logger := logging.Get()
 
-	miss, locationStore, err := fromIdCached(loc_id)
+	miss, locationStore, err := fromIdCached(ctx, loc_id)
 	if err != nil {
 		err = fmt.Errorf("getting loc from cache: %w", err)
 		return
@@ -42,10 +43,10 @@ func FromId(loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	return
 }
 
-func FromInd(sessionId string, index int32) (loc *mealswipepb.Location, err error) {
+func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipepb.Location, err error) {
 	logger := logging.Get()
 
-	locId, distance, err := idFromInd(sessionId, index)
+	locId, distance, err := idFromInd(ctx, sessionId, index)
 	if err != nil {
 		err = fmt.Errorf("getting id for ind: %w", err)
 		return nil, err
@@ -58,7 +59,7 @@ func FromInd(sessionId string, index int32) (loc *mealswipepb.Location, err erro
 		}, nil
 	}
 
-	loc, err = FromId(locId, index)
+	loc, err = FromId(ctx, locId, index)
 	if err != nil {
 		err = fmt.Errorf("getting loc from id: %w", err)
 		return

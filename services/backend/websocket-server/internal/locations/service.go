@@ -40,8 +40,8 @@ var ALLOWED_CATEGORIES = []string{
 
 const DISABLE_CACHING = false
 
-func fromIdCached(loc_id string) (miss bool, locStore *mealswipepb.LocationStore, err error) {
-	get := msredis.GetRedisClient().Get(context.TODO(), keys.BuildLocKey(loc_id))
+func fromIdCached(ctx context.Context, loc_id string) (miss bool, locStore *mealswipepb.LocationStore, err error) {
+	get := msredis.GetRedisClient().Get(ctx, keys.BuildLocKey(loc_id))
 
 	err = get.Err()
 	if err == redis.Nil {
@@ -175,12 +175,12 @@ func writeLocationStore(loc_id string, locationStore *mealswipepb.LocationStore)
 	return
 }
 
-func idFromInd(sessionId string, index int32) (locId string, distanceVal string, err error) {
+func idFromInd(ctx context.Context, sessionId string, index int32) (locId string, distanceVal string, err error) {
 	pipe := msredis.GetRedisClient().Pipeline()
-	location := pipe.LIndex(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), int64(index))
-	distance := pipe.LIndex(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), int64(index))
+	location := pipe.LIndex(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), int64(index))
+	distance := pipe.LIndex(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), int64(index))
 
-	_, err = pipe.Exec(context.TODO())
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		if err == redis.Nil {
 			return "", "", nil

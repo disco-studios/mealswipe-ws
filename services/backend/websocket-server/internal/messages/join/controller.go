@@ -1,6 +1,7 @@
 package join
 
 import (
+	"context"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -12,7 +13,7 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func HandleMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
+func HandleMessage(ctx context.Context, userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
 
 	// Get the session ID for the given code
 	sessionId, err := sessions.GetIdFromCode(joinMessage.Code)
@@ -31,7 +32,7 @@ func HandleMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMess
 	userState.HostState = mealswipe.HostState_JOINING
 
 	// Send the lobby info to the user
-	inLobbyNicknames, err := sessions.GetActiveNicknames(userState.JoinedSessionId)
+	inLobbyNicknames, err := sessions.GetActiveNicknames(ctx, userState.JoinedSessionId)
 	if err != nil {
 		err = fmt.Errorf("get active nicknames for lobby info: %w", err)
 	}

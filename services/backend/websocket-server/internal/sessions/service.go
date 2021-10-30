@@ -18,8 +18,8 @@ func getIdFromCode(code string) (sessionId string, err error) {
 	return result.Val(), result.Err()
 }
 
-func getActiveUsers(sessionId string) (activeUsers []string, err error) {
-	hGetAll := msredis.GetRedisClient().HGetAll(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE))
+func getActiveUsers(ctx context.Context, sessionId string) (activeUsers []string, err error) {
+	hGetAll := msredis.GetRedisClient().HGetAll(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE))
 	if err = hGetAll.Err(); err != nil {
 		err = fmt.Errorf("redis hgetall: %v", err)
 		return
@@ -39,8 +39,8 @@ func getActiveUsers(sessionId string) (activeUsers []string, err error) {
 	return
 }
 
-func getActiveNicknames(sessionId string) (activeNicknames []string, err error) {
-	activeUsers, err := GetActiveUsers(sessionId)
+func getActiveNicknames(ctx context.Context, sessionId string) (activeNicknames []string, err error) {
+	activeUsers, err := GetActiveUsers(ctx, sessionId)
 	if err != nil {
 		err = fmt.Errorf("get active users: %v", err)
 		return
@@ -125,17 +125,17 @@ func start(code string, sessionId string, venueIds []string, distances []float64
 	return
 }
 
-func vote(userId string, sessionId string, index int32, state bool) (err error) {
+func vote(ctx context.Context, userId string, sessionId string, index int32, state bool) (err error) {
 	voteBit := 0
 	if state {
 		voteBit = 1
 	}
 
-	return msredis.GetRedisClient().SetBit(context.TODO(), keys.BuildVotesKey(sessionId, userId), int64(index), voteBit).Err()
+	return msredis.GetRedisClient().SetBit(ctx, keys.BuildVotesKey(sessionId, userId), int64(index), voteBit).Err()
 }
 
-func getWinIndex(sessionId string) (win bool, winningIndex int32, err error) {
-	activeUsers, err := GetActiveUsers(sessionId)
+func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex int32, err error) {
+	activeUsers, err := GetActiveUsers(ctx, sessionId)
 	if err != nil {
 		err = fmt.Errorf("get active users: %w", err)
 		return

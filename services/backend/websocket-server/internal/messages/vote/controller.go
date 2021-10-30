@@ -1,6 +1,7 @@
 package vote
 
 import (
+	"context"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -14,9 +15,9 @@ import (
 
 var AcceptibleHostStates_Vote = []int16{mealswipe.HostState_HOSTING, mealswipe.HostState_JOINING}
 
-func HandleMessage(userState *types.UserState, voteMessage *mealswipepb.VoteMessage) (err error) {
+func HandleMessage(ctx context.Context, userState *types.UserState, voteMessage *mealswipepb.VoteMessage) (err error) {
 	logger := logging.Get()
-	err = sessions.Vote(userState.UserId, userState.JoinedSessionId, voteMessage.Index, voteMessage.Vote)
+	err = sessions.Vote(ctx, userState.UserId, userState.JoinedSessionId, voteMessage.Index, voteMessage.Vote)
 	if err != nil {
 		err = fmt.Errorf("vote: %w", err)
 		return
@@ -29,9 +30,9 @@ func HandleMessage(userState *types.UserState, voteMessage *mealswipepb.VoteMess
 		zap.Int32("index", voteMessage.Index),
 		logging.UserId(userState.UserId),
 	)
-	go sessions.CheckWin(userState) // TODO This could throw an error, figure out how to handle
+	go sessions.CheckWin(ctx, userState) // TODO This could throw an error, figure out how to handle
 
-	err = sessions.SendNextLocToUser(userState)
+	err = sessions.SendNextLocToUser(ctx, userState)
 	if err != nil {
 		err = fmt.Errorf("send next loc: %w", err)
 		return

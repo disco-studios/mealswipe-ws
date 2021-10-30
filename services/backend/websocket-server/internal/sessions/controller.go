@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -18,12 +19,12 @@ func GetIdFromCode(code string) (sessionId string, err error) {
 	return getIdFromCode(code)
 }
 
-func GetActiveUsers(sessionId string) (activeUsers []string, err error) {
-	return getActiveUsers(sessionId)
+func GetActiveUsers(ctx context.Context, sessionId string) (activeUsers []string, err error) {
+	return getActiveUsers(ctx, sessionId)
 }
 
-func GetActiveNicknames(sessionId string) (activeNicknames []string, err error) {
-	return getActiveNicknames(sessionId)
+func GetActiveNicknames(ctx context.Context, sessionId string) (activeNicknames []string, err error) {
+	return getActiveNicknames(ctx, sessionId)
 }
 
 func JoinById(userState *types.UserState, sessionId string, code string) (err error) {
@@ -73,12 +74,12 @@ func Start(code string, sessionId string, lat float64, lng float64, radius int32
 	return start(code, sessionId, venueIds, distances)
 }
 
-func Vote(userId string, sessionId string, index int32, state bool) (err error) {
-	return vote(userId, sessionId, index, state)
+func Vote(ctx context.Context, userId string, sessionId string, index int32, state bool) (err error) {
+	return vote(ctx, userId, sessionId, index, state)
 }
 
-func CheckWin(userState *types.UserState) (err error) {
-	win, winIndex, err := getWinIndex(userState.JoinedSessionId)
+func CheckWin(ctx context.Context, userState *types.UserState) (err error) {
+	win, winIndex, err := getWinIndex(ctx, userState.JoinedSessionId)
 	if err != nil {
 		err = fmt.Errorf("check win index: %w", err)
 		return
@@ -87,7 +88,7 @@ func CheckWin(userState *types.UserState) (err error) {
 	if win {
 		// TODO This shouldn't live here I don't think
 		var loc *mealswipepb.Location
-		loc, err = locations.FromInd(userState.JoinedSessionId, winIndex)
+		loc, err = locations.FromInd(ctx, userState.JoinedSessionId, winIndex)
 		if err != nil {
 			err = fmt.Errorf("winning location from ind: %w", err)
 			return
@@ -122,18 +123,18 @@ func Create(userState *types.UserState) (sessionID string, code string, err erro
 	return
 }
 
-func GetNextLocForUser(userState *types.UserState) (loc *mealswipepb.Location, err error) {
+func GetNextLocForUser(ctx context.Context, userState *types.UserState) (loc *mealswipepb.Location, err error) {
 	ind, err := nextVoteInd(userState.JoinedSessionId, userState.UserId)
 	if err != nil {
 		return
 	}
 
-	loc, err = locations.FromInd(userState.JoinedSessionId, int32(ind))
+	loc, err = locations.FromInd(ctx, userState.JoinedSessionId, int32(ind))
 	return
 }
 
-func SendNextLocToUser(userState *types.UserState) (err error) {
-	loc, err := GetNextLocForUser(userState)
+func SendNextLocToUser(ctx context.Context, userState *types.UserState) (err error) {
+	loc, err := GetNextLocForUser(ctx, userState)
 	if err != nil {
 		return
 	}

@@ -2,6 +2,7 @@ package websockets
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 
 	"github.com/gorilla/websocket"
@@ -34,7 +35,7 @@ func pubsubPump(userState *types.UserState, messageQueue <-chan string) {
 			userState.SendWebsocketMessage(websocketResponse)
 			if websocketResponse.GetGameStartedMessage() != nil {
 				for i := 0; i < 2; i++ {
-					err := sessions.SendNextLocToUser(userState)
+					err := sessions.SendNextLocToUser(context.TODO(), userState)
 					if err != nil {
 						logger.Error("pumpsump pump failed to send next location to user", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
 					}
