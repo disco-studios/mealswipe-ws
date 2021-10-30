@@ -119,7 +119,7 @@ metadata:
 data:
   system.yml: |-
     - module: system
-      period: 10s
+      period: 15s
       metricsets:
         - cpu
         - load
@@ -136,7 +136,7 @@ data:
         by_memory: 5   # include top 5 processes by memory
 
     - module: system
-      period: 1m
+      period: 5m
       metricsets:
         - filesystem
         - fsstat
@@ -156,7 +156,7 @@ data:
         - "memory"
         - "network"
       hosts: ["unix:///var/run/docker.sock"]
-      period: 10s
+      period: 15s
       enabled: true
 
   kubernetes.yml: |-
@@ -167,7 +167,7 @@ data:
         - pod
         - container
         - volume
-      period: 10s
+      period: 15s
       host: ${NODE_NAME}
       #hosts: ["localhost:10255"]
       # If using Red Hat OpenShift remove the previous hosts entry and 
@@ -179,19 +179,22 @@ data:
     - module: kubernetes
       metricsets:
         - proxy
-      period: 10s
+      period: 15s
       host: ${NODE_NAME}
       hosts: ["localhost:10249"]
 ---
 # Deploy a Metricbeat instance per node for node metrics retrieval
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: metricbeat
   namespace: kube-system
   labels:
     k8s-app: metricbeat
-spec:
+spec:  
+  selector:
+    matchLabels:
+      k8s-app: metricbeat
   template:
     metadata:
       labels:
@@ -324,38 +327,52 @@ data:
         - state_container
         # Uncomment this to get k8s events:
         - event
-      period: 10s
+      period: 15s
       host: ${NODE_NAME}
       hosts: ["kube-state-metrics:8080"]
 
-  aws.yml: |-
-    - module: aws
-      period: 300s
+  # aws.yml: |-
+  #   - module: aws
+  #     period: 300s
+  #     metricsets:
+  #       - ec2
+  #       - ebs
+  #       - cloudwatch
+  #       - elb
+  #       - rds
+  #       - s3_daily_storage
+  #       - s3_request
+  #       - sqs
+  #     metrics:
+  #       - namespace: AWS/EBS
+  #       - namespace: AWS/ELB
+  #       - namespace: AWS/EC2
+  #     access_key_id: ${AWS_ACCESS_KEY_ID}
+  #     secret_access_key: ${AWS_ACCESS_KEY_SECRET}
+
+  redis.yml: |-
+    - module: redis
+      period: 30s
       metricsets:
-        - ec2
-        - ebs
-        - cloudwatch
-        - elb
-        - rds
-        - s3_daily_storage
-        - s3_request
-        - sqs
-      metrics:
-        - namespace: AWS/EBS
-        - namespace: AWS/ELB
-        - namespace: AWS/EC2
-      access_key_id: ${AWS_ACCESS_KEY_ID}
-      secret_access_key: ${AWS_ACCESS_KEY_SECRET}
+        - info
+        - keyspace
+      enabled: true
+      hosts:
+        - mealswipe-cluster-redis-cluster.default.svc.cluster.local:6379
+      password: qrDMS6jKt4
 ---
 # Deploy singleton instance in the whole cluster for some unique data sources, like kube-state-metrics
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metricbeat
   namespace: kube-system
   labels:
     k8s-app: metricbeat
-spec:
+spec:  
+  selector:
+    matchLabels:
+      k8s-app: metricbeat
   template:
     metadata:
       labels:
@@ -430,7 +447,7 @@ spec:
           defaultMode: 0600
           name: metricbeat-deployment-modules
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: metricbeat
@@ -443,7 +460,7 @@ roleRef:
   name: metricbeat
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: metricbeat
