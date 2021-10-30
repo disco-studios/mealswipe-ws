@@ -1,6 +1,7 @@
 package codes
 
 import (
+	"context"
 	"fmt"
 	"math"
 
@@ -24,11 +25,11 @@ var MAX_SESSION_CODE_RAW int = int(math.Pow(
 	float64(SESSION_CODE_LENGTH),
 ))
 
-func Reserve(sessionId string) (code string, err error) {
+func Reserve(ctx context.Context, sessionId string) (code string, err error) {
 	logger := logging.Get()
 	for i := 0; i < MAX_CODE_ATTEMPTS; i++ {
 		code = encodeRaw(generateRandomRaw())
-		err = attemptReserveCode(sessionId, code)
+		err = attemptReserveCode(ctx, sessionId, code)
 		if err == nil { // TODO Handle errors other than the one we made
 			logger.Info("reserved code", logging.Metric("code_collision"), zap.Bool("collision", false), zap.Error(err))
 			return

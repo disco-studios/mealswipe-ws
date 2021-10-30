@@ -15,8 +15,8 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-func GetIdFromCode(code string) (sessionId string, err error) {
-	return getIdFromCode(code)
+func GetIdFromCode(ctx context.Context, code string) (sessionId string, err error) {
+	return getIdFromCode(ctx, code)
 }
 
 func GetActiveUsers(ctx context.Context, sessionId string) (activeUsers []string, err error) {
@@ -27,9 +27,9 @@ func GetActiveNicknames(ctx context.Context, sessionId string) (activeNicknames 
 	return getActiveNicknames(ctx, sessionId)
 }
 
-func JoinById(userState *types.UserState, sessionId string, code string) (err error) {
+func JoinById(ctx context.Context, userState *types.UserState, sessionId string, code string) (err error) {
 	logging.Get().Info("user joined session", logging.Metric("session_join"), zap.String("nickname", userState.Nickname), logging.UserId(userState.UserId), logging.SessionId(sessionId))
-	redisPubsub, err := joinById(userState.UserId, sessionId, userState.Nickname, userState.PubsubChannel)
+	redisPubsub, err := joinById(ctx, userState.UserId, sessionId, userState.Nickname, userState.PubsubChannel)
 	if err != nil {
 		err = fmt.Errorf("join by id: %w", err)
 		return
@@ -49,7 +49,7 @@ func HandleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<-
 	}
 }
 
-func Start(code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
+func Start(ctx context.Context, code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
 	logging.Get().Info(
 		"game started",
 		logging.Metric("game_start"),
@@ -62,7 +62,7 @@ func Start(code string, sessionId string, lat float64, lng float64, radius int32
 	)
 
 	// TODO This write should maybe go into locs
-	venueIds, distances, err := locations.IdsForLocation(lat, lng, radius, categoryId)
+	venueIds, distances, err := locations.IdsForLocation(ctx, lat, lng, radius, categoryId)
 	if err != nil {
 		err = fmt.Errorf("get ids for location: %w", err)
 		return
@@ -71,7 +71,7 @@ func Start(code string, sessionId string, lat float64, lng float64, radius int32
 		return errors.New("found no venues for loc")
 	}
 
-	return start(code, sessionId, venueIds, distances)
+	return start(ctx, code, sessionId, venueIds, distances)
 }
 
 func Vote(ctx context.Context, userId string, sessionId string, index int32, state bool) (err error) {
@@ -113,18 +113,18 @@ func CheckWin(ctx context.Context, userState *types.UserState) (err error) {
 	return
 }
 
-func Create(userState *types.UserState) (sessionID string, code string, err error) {
+func Create(ctx context.Context, userState *types.UserState) (sessionID string, code string, err error) {
 	sessionID = "s-" + uuid.NewString()
-	code, err = codes.Reserve(sessionID)
+	code, err = codes.Reserve(ctx, sessionID)
 	if err != nil {
 		return
 	}
-	err = create(code, sessionID, userState.UserId)
+	err = create(ctx, code, sessionID, userState.UserId)
 	return
 }
 
 func GetNextLocForUser(ctx context.Context, userState *types.UserState) (loc *mealswipepb.Location, err error) {
-	ind, err := nextVoteInd(userState.JoinedSessionId, userState.UserId)
+	ind, err := nextVoteInd(ctx, userState.JoinedSessionId, userState.UserId)
 	if err != nil {
 		return
 	}

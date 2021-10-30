@@ -1,6 +1,7 @@
 package start
 
 import (
+	"context"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -14,8 +15,8 @@ import (
 
 var AcceptibleHostStates_Start = []int16{mealswipe.HostState_HOSTING}
 
-func HandleMessage(userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
-	err = sessions.Start(userState.JoinedSessionCode, userState.JoinedSessionId, startMessage.Lat, startMessage.Lng, startMessage.Radius, startMessage.CategoryId)
+func HandleMessage(ctx context.Context, userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
+	err = sessions.Start(ctx, userState.JoinedSessionCode, userState.JoinedSessionId, startMessage.Lat, startMessage.Lng, startMessage.Radius, startMessage.CategoryId)
 	if err != nil {
 		err = fmt.Errorf("start session: %w", err)
 		return
@@ -31,7 +32,7 @@ func HandleMessage(userState *types.UserState, startMessage *mealswipepb.StartMe
 	return
 }
 
-func ValidateMessage(userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
+func ValidateMessage(ctx context.Context, userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
 	logger := logging.Get()
 
 	// Validate that the user is in a state that can do this action
@@ -63,7 +64,7 @@ func ValidateMessage(userState *types.UserState, startMessage *mealswipepb.Start
 		}
 	}
 
-	sessionId, err := sessions.GetIdFromCode(userState.JoinedSessionCode)
+	sessionId, err := sessions.GetIdFromCode(ctx, userState.JoinedSessionCode)
 	if err != nil || sessionId == "" {
 		err = fmt.Errorf("get id from code: %w", err)
 		return err

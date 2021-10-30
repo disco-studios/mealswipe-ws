@@ -16,7 +16,7 @@ import (
 func HandleMessage(ctx context.Context, userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
 
 	// Get the session ID for the given code
-	sessionId, err := sessions.GetIdFromCode(joinMessage.Code)
+	sessionId, err := sessions.GetIdFromCode(ctx, joinMessage.Code)
 	if err != nil {
 		err = fmt.Errorf("get id from code: %w", err)
 		return
@@ -24,7 +24,7 @@ func HandleMessage(ctx context.Context, userState *types.UserState, joinMessage 
 
 	// Join the user into the new session
 	userState.Nickname = joinMessage.Nickname
-	err = sessions.JoinById(userState, sessionId, joinMessage.Code)
+	err = sessions.JoinById(ctx, userState, sessionId, joinMessage.Code)
 	if err != nil {
 		err = fmt.Errorf("join by id: %w", err)
 		return
@@ -50,7 +50,7 @@ func HandleMessage(ctx context.Context, userState *types.UserState, joinMessage 
 
 var AcceptibleHostStates_Join = []int16{mealswipe.HostState_UNIDENTIFIED}
 
-func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
+func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
 	logger := logging.Get()
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Join)
@@ -82,7 +82,7 @@ func ValidateMessage(userState *types.UserState, joinMessage *mealswipepb.JoinMe
 	}
 
 	// Validate that this session actually exists
-	sessionId, err := sessions.GetIdFromCode(joinMessage.Code)
+	sessionId, err := sessions.GetIdFromCode(ctx, joinMessage.Code)
 	if err != nil || sessionId == "" {
 		err = fmt.Errorf("get session id from code: %w", err)
 		return err

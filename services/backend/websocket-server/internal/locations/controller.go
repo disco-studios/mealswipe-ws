@@ -26,7 +26,7 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 			return
 		}
 
-		err = writeLocationStore(loc_id, locationStore)
+		err = writeLocationStore(ctx, loc_id, locationStore)
 		if err != nil {
 			err = fmt.Errorf("writing loc to cache: %w", err)
 			return // TODO We can proceed here even if we fail to cache
@@ -75,7 +75,7 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 	return
 }
 
-func IdsForLocation(lat float64, lng float64, radius int32, _categoryId string) (loc_id []string, distances []float64, err error) {
+func IdsForLocation(ctx context.Context, lat float64, lng float64, radius int32, _categoryId string) (loc_id []string, distances []float64, err error) {
 	categoryId := "4d4b7105d754a06374d81259" // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
 	if _categoryId != "" {
 		for _, allowedCategoryId := range ALLOWED_CATEGORIES {
@@ -86,14 +86,14 @@ func IdsForLocation(lat float64, lng float64, radius int32, _categoryId string) 
 		}
 	}
 
-	respObj, err := getLocationsNear(lat, lng, radius, categoryId)
+	respObj, err := getLocationsNear(ctx, lat, lng, radius, categoryId)
 	if err != nil {
 		err = fmt.Errorf("getLocationsNear: %w", err)
 		return
 	}
 
 	// Optimize the returned venues
-	venues, err := findOptimalVenues(respObj.Response.Venues)
+	venues, err := findOptimalVenues(ctx, respObj.Response.Venues)
 	if err != nil {
 		err = fmt.Errorf("findOptimalValues: %w", err)
 		return
@@ -105,6 +105,6 @@ func IdsForLocation(lat float64, lng float64, radius int32, _categoryId string) 
 	return locArray, distArray, nil
 }
 
-func ClearCache() (cleared_len int, err error) {
-	return clearCache()
+func ClearCache(ctx context.Context) (cleared_len int, err error) {
+	return clearCache(ctx)
 }

@@ -153,7 +153,7 @@ func fromStore(locationStore *mealswipepb.LocationStore, index int32) (loc *meal
 
 // TODO Make this take the standard array
 // TODO Make the standard array into a struct so she less messy (loc object probably)
-func writeLocationStore(loc_id string, locationStore *mealswipepb.LocationStore) (err error) {
+func writeLocationStore(ctx context.Context, loc_id string, locationStore *mealswipepb.LocationStore) (err error) {
 	if locationStore.FoursquareLoc.Name == "" {
 		err = fmt.Errorf("not caching, bad data: %s", loc_id)
 		return
@@ -165,7 +165,7 @@ func writeLocationStore(loc_id string, locationStore *mealswipepb.LocationStore)
 		return
 	}
 
-	set := msredis.GetRedisClient().SetEX(context.TODO(), keys.BuildLocKey(loc_id), out, time.Hour*24)
+	set := msredis.GetRedisClient().SetEX(ctx, keys.BuildLocKey(loc_id), out, time.Hour*24)
 
 	err = set.Err()
 	if err != nil {
@@ -208,7 +208,7 @@ func idFromInd(ctx context.Context, sessionId string, index int32) (locId string
 	return location.Val(), distance.Val(), nil
 }
 
-func getLocationsNear(lat float64, lng float64, radius int32, categoryId string) (respObj *types.LocationRequestResponse, err error) {
+func getLocationsNear(ctx context.Context, lat float64, lng float64, radius int32, categoryId string) (respObj *types.LocationRequestResponse, err error) {
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
 		"UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN", // client id
@@ -278,7 +278,7 @@ func shuffleVenues(venues []types.Venue) {
 	rand.Shuffle(len(venues), func(i, j int) { venues[i], venues[j] = venues[j], venues[i] })
 }
 
-func findOptimalVenues(venues []types.Venue) (resultingVenues []types.Venue, err error) {
+func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenues []types.Venue, err error) {
 	logger := logging.Get()
 	// Sort by distance
 	types.By(types.Distance).Sort(venues)
@@ -314,12 +314,12 @@ func findOptimalVenues(venues []types.Venue) (resultingVenues []types.Venue, err
 	for _, venue := range uniqueNames {
 		// ids = append(ids, venue.Id)
 		cmds = append(cmds, pipe.Get(
-			context.TODO(),
+			ctx,
 			keys.BuildLocKey(venue.Id),
 		))
 	}
 
-	_, _ = pipe.Exec(context.TODO())
+	_, _ = pipe.Exec(ctx)
 
 	// Figure out hits and misses, while filtering out blacklisted locations
 	var hit []types.Venue
@@ -360,14 +360,14 @@ func findOptimalVenues(venues []types.Venue) (resultingVenues []types.Venue, err
 	return
 }
 
-func clearCache() (cleared_len int, err error) {
+func clearCache(ctx context.Context) (cleared_len int, err error) {
 	redisClient := msredis.GetRedisClient()
 	var cursor uint64
 	var n int
 	for {
 		var dbkeys []string
 		var err error
-		dbkeys, cursor, err = redisClient.Scan(context.TODO(), cursor, fmt.Sprintf("%s*", keys.PREFIX_LOC_API), 15).Result()
+		dbkeys, cursor, err = redisClient.Scan(ctx, cursor, fmt.Sprintf("%s*", keys.PREFIX_LOC_API), 15).Result()
 		if err != nil {
 			err = fmt.Errorf("redis scan: %v", err)
 			return n, err
@@ -376,7 +376,7 @@ func clearCache() (cleared_len int, err error) {
 		n += len(dbkeys)
 		if len(dbkeys) > 0 {
 			for _, key := range dbkeys {
-				_, err = redisClient.Del(context.TODO(), key).Result()
+				_, err = redisClient.Del(ctx, key).Result()
 				if err != nil {
 					err = fmt.Errorf("redis delete: %v", err)
 					return n, err

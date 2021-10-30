@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,7 +33,7 @@ func (userState UserState) SendPubsubMessage(message string) (err error) {
 	if userState.JoinedSessionId == "" {
 		return errors.New("user not currently in a session")
 	}
-	return msredis.PubsubWrite(keys.BuildSessionKey(userState.JoinedSessionId, ""), message)
+	return msredis.PubsubWrite(context.TODO(), keys.BuildSessionKey(userState.JoinedSessionId, ""), message)
 }
 
 func (userState UserState) PubsubWebsocketResponse(websocketResponse *mealswipepb.WebsocketResponse) (err error) {

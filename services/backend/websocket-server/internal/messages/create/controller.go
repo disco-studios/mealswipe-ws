@@ -1,6 +1,7 @@
 package create
 
 import (
+	"context"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -14,9 +15,9 @@ import (
 
 var AcceptibleHostStates_Create = []int16{mealswipe.HostState_UNIDENTIFIED}
 
-func HandleMessage(userState *types.UserState, createMessage *mealswipepb.CreateMessage) (err error) {
+func HandleMessage(ctx context.Context, userState *types.UserState, createMessage *mealswipepb.CreateMessage) (err error) {
 	// Create session
-	sessionId, code, err := sessions.Create(userState)
+	sessionId, code, err := sessions.Create(ctx, userState)
 	if err != nil {
 		err = fmt.Errorf("create session: %w", err)
 		return
@@ -24,7 +25,7 @@ func HandleMessage(userState *types.UserState, createMessage *mealswipepb.Create
 
 	// Join the user into the new session
 	userState.Nickname = createMessage.Nickname
-	err = sessions.JoinById(userState, sessionId, code)
+	err = sessions.JoinById(ctx, userState, sessionId, code)
 	if err != nil {
 		err = fmt.Errorf("join session by id: %w", err)
 		return
@@ -43,7 +44,7 @@ func HandleMessage(userState *types.UserState, createMessage *mealswipepb.Create
 	return
 }
 
-func ValidateMessage(userState *types.UserState, createMessage *mealswipepb.CreateMessage) (err error) {
+func ValidateMessage(ctx context.Context, userState *types.UserState, createMessage *mealswipepb.CreateMessage) (err error) {
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Create)
 	if err != nil {

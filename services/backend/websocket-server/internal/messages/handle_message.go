@@ -27,7 +27,7 @@ func HandleMessage(userState *types.UserState, genericMessage *mealswipepb.Webso
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
 		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "create"))
-		err = create.HandleMessage(userState, genericMessage.GetCreateMessage())
+		err = create.HandleMessage(ctx, userState, genericMessage.GetCreateMessage())
 		if err != nil {
 			err = fmt.Errorf("handle create message: %w", err)
 		}
@@ -49,7 +49,7 @@ func HandleMessage(userState *types.UserState, genericMessage *mealswipepb.Webso
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
 		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "start"))
-		err = start.HandleMessage(userState, genericMessage.GetStartMessage())
+		err = start.HandleMessage(ctx, userState, genericMessage.GetStartMessage())
 		if err != nil {
 			err = fmt.Errorf("handle start message: %w", err)
 		}

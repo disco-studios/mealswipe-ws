@@ -16,9 +16,9 @@ func (e *CodeAlreadyExistsError) Error() string {
 	return "code already claimed"
 }
 
-func attemptReserveCode(sessionId string, code string) (err error) {
+func attemptReserveCode(ctx context.Context, sessionId string, code string) (err error) {
 	// TODO Handle this a bit better, we could miss errors
-	res, err := msredis.GetRedisClient().SetNX(context.TODO(), keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
+	res, err := msredis.GetRedisClient().SetNX(ctx, keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
 	if !res {
 		// TODO This can probably be done better
 		return &CodeAlreadyExistsError{}

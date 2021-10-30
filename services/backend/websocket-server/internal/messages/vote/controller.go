@@ -41,7 +41,7 @@ func HandleMessage(ctx context.Context, userState *types.UserState, voteMessage 
 	return
 }
 
-func ValidateMessage(userState *types.UserState, voteMessage *mealswipepb.VoteMessage) (err error) {
+func ValidateMessage(ctx context.Context, userState *types.UserState, voteMessage *mealswipepb.VoteMessage) (err error) {
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Vote)
 	if err != nil {

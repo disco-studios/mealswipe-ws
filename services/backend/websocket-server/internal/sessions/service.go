@@ -12,9 +12,9 @@ import (
 	"mealswipe.app/mealswipe/internal/msredis"
 )
 
-func getIdFromCode(code string) (sessionId string, err error) {
+func getIdFromCode(ctx context.Context, code string) (sessionId string, err error) {
 	key := keys.BuildCodeKey(code)
-	result := msredis.GetRedisClient().Get(context.TODO(), key)
+	result := msredis.GetRedisClient().Get(ctx, key)
 	return result.Val(), result.Err()
 }
 
@@ -46,7 +46,7 @@ func getActiveNicknames(ctx context.Context, sessionId string) (activeNicknames 
 		return
 	}
 
-	hGetAll := msredis.GetRedisClient().HGetAll(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_NICKNAMES))
+	hGetAll := msredis.GetRedisClient().HGetAll(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_NICKNAMES))
 	if err = hGetAll.Err(); err != nil {
 		err = fmt.Errorf("redis hgetall: %v", err)
 		return
@@ -65,26 +65,26 @@ func getActiveNicknames(ctx context.Context, sessionId string) (activeNicknames 
 	return
 }
 
-func joinById(userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
+func joinById(ctx context.Context, userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
 	pipe := msredis.GetRedisClient().Pipeline()
 	timeToLive := time.Hour * 24
 
-	pipe.SetNX(context.TODO(), keys.BuildUserKey(userId, keys.KEY_USER_SESSION), sessionId, time.Hour*24)
-	pipe.SAdd(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS), userId)
-	pipe.HSet(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE), userId, true)        // TODO Expire
-	pipe.HSet(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTEIND), userId, 0)                // TODO Expire
-	pipe.HSet(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_NICKNAMES), userId, nickname) // TODO Expire
-	pipe.SetBit(context.TODO(), keys.BuildVotesKey(sessionId, userId), 0, 0)
-	pipe.Expire(context.TODO(), keys.BuildVotesKey(sessionId, userId), timeToLive)
+	pipe.SetNX(ctx, keys.BuildUserKey(userId, keys.KEY_USER_SESSION), sessionId, time.Hour*24)
+	pipe.SAdd(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS), userId)
+	pipe.HSet(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE), userId, true)        // TODO Expire
+	pipe.HSet(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTEIND), userId, 0)                // TODO Expire
+	pipe.HSet(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_NICKNAMES), userId, nickname) // TODO Expire
+	pipe.SetBit(ctx, keys.BuildVotesKey(sessionId, userId), 0, 0)
+	pipe.Expire(ctx, keys.BuildVotesKey(sessionId, userId), timeToLive)
 
-	_, err = pipe.Exec(context.TODO())
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
 	}
 
 	// Initiate a pubsub with this session
-	redisPubsub = msredis.GetRedisClient().Subscribe(context.TODO(), keys.BuildSessionKey(sessionId, ""))
+	redisPubsub = msredis.GetRedisClient().Subscribe(ctx, keys.BuildSessionKey(sessionId, ""))
 	pubsubChannel := redisPubsub.Channel()
 	go HandleRedisMessages(pubsubChannel, genericPubsub)
 
@@ -98,25 +98,25 @@ func reverse(venues []string) []string {
 	return venues
 }
 
-func start(code string, sessionId string, venueIds []string, distances []float64) (err error) {
+func start(ctx context.Context, code string, sessionId string, venueIds []string, distances []float64) (err error) {
 	pipe := msredis.GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
 
-	pipe.Del(context.TODO(), keys.BuildCodeKey(code))
-	pipe.Set(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_GAME_STATE), "RUNNING", timeToLive) // TODO pull RUNNING into constant
-	pipe.LPush(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), reverse(venueIds))
+	pipe.Del(ctx, keys.BuildCodeKey(code))
+	pipe.Set(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_GAME_STATE), "RUNNING", timeToLive) // TODO pull RUNNING into constant
+	pipe.LPush(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), reverse(venueIds))
 
 	var distanceStrings []string
 	for _, distance := range distances {
 		distanceStrings = append(distanceStrings, fmt.Sprintf("%d", int(distance)))
 	}
 
-	pipe.LPush(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), reverse(distanceStrings))
-	pipe.Expire(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), timeToLive)
-	pipe.Expire(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), timeToLive)
+	pipe.LPush(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), reverse(distanceStrings))
+	pipe.Expire(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), timeToLive)
+	pipe.Expire(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), timeToLive)
 
-	_, err = pipe.Exec(context.TODO())
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
@@ -148,10 +148,10 @@ func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex 
 
 	pipe := msredis.GetRedisClient().Pipeline()
 
-	pipe.BitOpAnd(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTE_TALLY), voteKeys...)
-	winningIndexResult := pipe.BitPos(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTE_TALLY), 1)
+	pipe.BitOpAnd(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTE_TALLY), voteKeys...)
+	winningIndexResult := pipe.BitPos(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTE_TALLY), 1)
 
-	_, err = pipe.Exec(context.TODO())
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
@@ -162,16 +162,16 @@ func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex 
 	return
 }
 
-func create(code string, sessionId string, userId string) (err error) {
+func create(ctx context.Context, code string, sessionId string, userId string) (err error) {
 	pipe := msredis.GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
 
-	pipe.Set(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_OWNER_ID), userId, timeToLive)
-	pipe.Set(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_GAME_STATE), "LOBBY", timeToLive) // TODO pull LOBBY into constant
-	pipe.SetBit(context.TODO(), keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTE_TALLY), 0, 0)
+	pipe.Set(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_OWNER_ID), userId, timeToLive)
+	pipe.Set(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_GAME_STATE), "LOBBY", timeToLive) // TODO pull LOBBY into constant
+	pipe.SetBit(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTE_TALLY), 0, 0)
 
-	_, err = pipe.Exec(context.TODO())
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		err = fmt.Errorf("redis pipe exec: %v", err)
 		return
@@ -179,11 +179,11 @@ func create(code string, sessionId string, userId string) (err error) {
 	return
 }
 
-func nextVoteInd(sessionId string, userId string) (index int, err error) {
+func nextVoteInd(ctx context.Context, sessionId string, userId string) (index int, err error) {
 
 	// TODO Should we really store this in a set? Probably not
 	current := msredis.GetRedisClient().HGet(
-		context.TODO(),
+		ctx,
 		keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTEIND),
 		userId,
 	)
@@ -201,7 +201,7 @@ func nextVoteInd(sessionId string, userId string) (index int, err error) {
 
 	go func() {
 		res := msredis.GetRedisClient().HSet(
-			context.TODO(),
+			ctx,
 			keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTEIND),
 			userId,
 			index+1,
