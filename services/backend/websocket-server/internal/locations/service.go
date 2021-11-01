@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"go.elastic.co/apm"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	"mealswipe.app/mealswipe/internal/keys"
@@ -41,6 +42,9 @@ var ALLOWED_CATEGORIES = []string{
 const DISABLE_CACHING = false
 
 func fromIdCached(ctx context.Context, loc_id string) (miss bool, locStore *mealswipepb.LocationStore, err error) {
+	span, ctx := apm.StartSpan(ctx, "fromIdCached", "locations.service")
+	defer span.End()
+
 	get := msredis.GetRedisClient().Get(ctx, keys.BuildLocKey(loc_id))
 
 	err = get.Err()
@@ -66,7 +70,10 @@ func fromIdCached(ctx context.Context, loc_id string) (miss bool, locStore *meal
 	return
 }
 
-func fromIdFresh(loc_id string) (locationStore *mealswipepb.LocationStore, err error) {
+func fromIdFresh(ctx context.Context, loc_id string) (locationStore *mealswipepb.LocationStore, err error) {
+	span, _ := apm.StartSpan(ctx, "fromIdFresh", "locations.service")
+	defer span.End()
+
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/%s?client_id=%s&client_secret=%s&v=%s",
 		loc_id, // venue ID
@@ -154,6 +161,9 @@ func fromStore(locationStore *mealswipepb.LocationStore, index int32) (loc *meal
 // TODO Make this take the standard array
 // TODO Make the standard array into a struct so she less messy (loc object probably)
 func writeLocationStore(ctx context.Context, loc_id string, locationStore *mealswipepb.LocationStore) (err error) {
+	span, ctx := apm.StartSpan(ctx, "writeLocationStore", "locations.service")
+	defer span.End()
+
 	if locationStore.FoursquareLoc.Name == "" {
 		err = fmt.Errorf("not caching, bad data: %s", loc_id)
 		return
@@ -176,6 +186,9 @@ func writeLocationStore(ctx context.Context, loc_id string, locationStore *meals
 }
 
 func idFromInd(ctx context.Context, sessionId string, index int32) (locId string, distanceVal string, err error) {
+	span, ctx := apm.StartSpan(ctx, "idFromInd", "locations.service")
+	defer span.End()
+
 	pipe := msredis.GetRedisClient().Pipeline()
 	location := pipe.LIndex(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), int64(index))
 	distance := pipe.LIndex(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), int64(index))
@@ -209,6 +222,9 @@ func idFromInd(ctx context.Context, sessionId string, index int32) (locId string
 }
 
 func getLocationsNear(ctx context.Context, lat float64, lng float64, radius int32, categoryId string) (respObj *types.LocationRequestResponse, err error) {
+	span, _ := apm.StartSpan(ctx, "getLocationsNear", "locations.service")
+	defer span.End()
+
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
 		"UIEPSPWBZLULKZJQGT3KNRBX40O4GHBKA1SZ404HCMTUYCSN", // client id
@@ -279,6 +295,9 @@ func shuffleVenues(venues []types.Venue) {
 }
 
 func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenues []types.Venue, err error) {
+	span, ctx := apm.StartSpan(ctx, "findOptimalVenues", "locations.service")
+	defer span.End()
+
 	logger := logging.Get()
 	// Sort by distance
 	types.By(types.Distance).Sort(venues)
@@ -361,6 +380,9 @@ func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenu
 }
 
 func clearCache(ctx context.Context) (cleared_len int, err error) {
+	span, ctx := apm.StartSpan(ctx, "clearCache", "locations.service")
+	defer span.End()
+
 	redisClient := msredis.GetRedisClient()
 	var cursor uint64
 	var n int

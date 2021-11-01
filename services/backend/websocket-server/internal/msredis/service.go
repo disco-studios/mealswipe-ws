@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/go-redis/redismock/v8"
+	"go.elastic.co/apm"
 	apmgoredis "go.elastic.co/apm/module/apmgoredisv8"
 )
 
@@ -35,6 +36,9 @@ func LoadRedisMockClient() redismock.ClientMock {
 }
 
 func PubsubWrite(ctx context.Context, channel string, message string) (err error) {
+	span, ctx := apm.StartSpan(ctx, "PubsubWrite", "msredis.service")
+	defer span.End()
+
 	err = _rfedisClient.Publish(ctx, channel, message).Err()
 	if err != nil {
 		err = fmt.Errorf("pubsub write: %v", err)

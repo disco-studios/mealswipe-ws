@@ -8,17 +8,24 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"go.elastic.co/apm"
 	"mealswipe.app/mealswipe/internal/keys"
 	"mealswipe.app/mealswipe/internal/msredis"
 )
 
 func getIdFromCode(ctx context.Context, code string) (sessionId string, err error) {
+	span, ctx := apm.StartSpan(ctx, "getIdFromCode", "sessions.service")
+	defer span.End()
+
 	key := keys.BuildCodeKey(code)
 	result := msredis.GetRedisClient().Get(ctx, key)
 	return result.Val(), result.Err()
 }
 
 func getActiveUsers(ctx context.Context, sessionId string) (activeUsers []string, err error) {
+	span, ctx := apm.StartSpan(ctx, "getActiveUsers", "sessions.service")
+	defer span.End()
+
 	hGetAll := msredis.GetRedisClient().HGetAll(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE))
 	if err = hGetAll.Err(); err != nil {
 		err = fmt.Errorf("redis hgetall: %v", err)
@@ -40,6 +47,9 @@ func getActiveUsers(ctx context.Context, sessionId string) (activeUsers []string
 }
 
 func getActiveNicknames(ctx context.Context, sessionId string) (activeNicknames []string, err error) {
+	span, ctx := apm.StartSpan(ctx, "getActiveNicknames", "sessions.service")
+	defer span.End()
+
 	activeUsers, err := GetActiveUsers(ctx, sessionId)
 	if err != nil {
 		err = fmt.Errorf("get active users: %v", err)
@@ -66,6 +76,9 @@ func getActiveNicknames(ctx context.Context, sessionId string) (activeNicknames 
 }
 
 func joinById(ctx context.Context, userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
+	span, ctx := apm.StartSpan(ctx, "joinById", "sessions.service")
+	defer span.End()
+
 	pipe := msredis.GetRedisClient().Pipeline()
 	timeToLive := time.Hour * 24
 
@@ -99,6 +112,9 @@ func reverse(venues []string) []string {
 }
 
 func start(ctx context.Context, code string, sessionId string, venueIds []string, distances []float64) (err error) {
+	span, ctx := apm.StartSpan(ctx, "start", "sessions.service")
+	defer span.End()
+
 	pipe := msredis.GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
@@ -126,6 +142,9 @@ func start(ctx context.Context, code string, sessionId string, venueIds []string
 }
 
 func vote(ctx context.Context, userId string, sessionId string, index int32, state bool) (err error) {
+	span, ctx := apm.StartSpan(ctx, "vote", "sessions.service")
+	defer span.End()
+
 	voteBit := 0
 	if state {
 		voteBit = 1
@@ -135,6 +154,9 @@ func vote(ctx context.Context, userId string, sessionId string, index int32, sta
 }
 
 func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex int32, err error) {
+	span, ctx := apm.StartSpan(ctx, "getWinIndex", "sessions.service")
+	defer span.End()
+
 	activeUsers, err := GetActiveUsers(ctx, sessionId)
 	if err != nil {
 		err = fmt.Errorf("get active users: %w", err)
@@ -163,6 +185,9 @@ func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex 
 }
 
 func create(ctx context.Context, code string, sessionId string, userId string) (err error) {
+	span, ctx := apm.StartSpan(ctx, "create", "sessions.service")
+	defer span.End()
+
 	pipe := msredis.GetRedisClient().Pipeline()
 
 	timeToLive := time.Hour * 24
@@ -180,6 +205,8 @@ func create(ctx context.Context, code string, sessionId string, userId string) (
 }
 
 func nextVoteInd(ctx context.Context, sessionId string, userId string) (index int, err error) {
+	span, ctx := apm.StartSpan(ctx, "nextVoteInd", "sessions.service")
+	defer span.End()
 
 	// TODO Should we really store this in a set? Probably not
 	current := msredis.GetRedisClient().HGet(

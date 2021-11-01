@@ -17,9 +17,7 @@ import (
 )
 
 // TODO NULL SAFETY FROM PROTOBUF STUFF
-func HandleMessage(userState *types.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
-	ctx := context.Background() // TODO Elevate to the message origin
-
+func HandleMessage(ctx context.Context, userState *types.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
 	logger := logging.Get()
 	if common.HasCreateMessage(genericMessage) {
 		tx := apm.DefaultTracer.StartTransaction("HANDLE create", "request")

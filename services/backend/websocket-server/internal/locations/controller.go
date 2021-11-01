@@ -20,7 +20,7 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 	}
 
 	if miss {
-		locationStore, err = fromIdFresh(loc_id)
+		locationStore, err = fromIdFresh(ctx, loc_id)
 		if err != nil {
 			err = fmt.Errorf("getting loc from api: %w", err)
 			return

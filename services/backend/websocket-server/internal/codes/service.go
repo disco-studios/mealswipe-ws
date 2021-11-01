@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"go.elastic.co/apm"
 	"mealswipe.app/mealswipe/internal/keys"
 	"mealswipe.app/mealswipe/internal/msredis"
 )
@@ -17,6 +18,9 @@ func (e *CodeAlreadyExistsError) Error() string {
 }
 
 func attemptReserveCode(ctx context.Context, sessionId string, code string) (err error) {
+	span, ctx := apm.StartSpan(ctx, "attemptReserveCode", "codes.service")
+	defer span.End()
+
 	// TODO Handle this a bit better, we could miss errors
 	res, err := msredis.GetRedisClient().SetNX(ctx, keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
 	if !res {
