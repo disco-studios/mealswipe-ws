@@ -169,10 +169,10 @@ data:
         - volume
       period: 15s
       host: ${NODE_NAME}
-      #hosts: ["localhost:10255"]
+      hosts: ["localhost:10255"]
       # If using Red Hat OpenShift remove the previous hosts entry and 
       # uncomment these settings:
-      hosts: ["https://${HOSTNAME}:10250"]
+      # hosts: ["https://${HOSTNAME}:10250"]
       bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
       ssl.certificate_authorities:
         - /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -331,24 +331,24 @@ data:
       host: ${NODE_NAME}
       hosts: ["kube-state-metrics:8080"]
 
-  # aws.yml: |-
-  #   - module: aws
-  #     period: 300s
-  #     metricsets:
-  #       - ec2
-  #       - ebs
-  #       - cloudwatch
-  #       - elb
-  #       - rds
-  #       - s3_daily_storage
-  #       - s3_request
-  #       - sqs
-  #     metrics:
-  #       - namespace: AWS/EBS
-  #       - namespace: AWS/ELB
-  #       - namespace: AWS/EC2
-  #     access_key_id: ${AWS_ACCESS_KEY_ID}
-  #     secret_access_key: ${AWS_ACCESS_KEY_SECRET}
+  aws.yml: |-
+    - module: aws
+      period: 300s
+      metricsets:
+        # - ec2
+        - ebs
+        # - cloudwatch
+        - elb
+        # - rds
+        # - s3_daily_storage
+        # - s3_request
+        # - sqs
+      metrics:
+        - namespace: AWS/EBS
+        - namespace: AWS/ELB
+        # - namespace: AWS/EC2
+      access_key_id: ${AWS_ACCESS_KEY_ID}
+      secret_access_key: ${AWS_ACCESS_KEY_SECRET}
 
   redis.yml: |-
     - module: redis
