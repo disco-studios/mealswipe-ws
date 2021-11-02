@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"go.elastic.co/apm"
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/logging"
 )
@@ -26,6 +27,9 @@ var MAX_SESSION_CODE_RAW int = int(math.Pow(
 ))
 
 func Reserve(ctx context.Context, sessionId string) (code string, err error) {
+	span, ctx := apm.StartSpan(ctx, "Reserve", "codes")
+	defer span.End()
+
 	logger := logging.Get()
 	for i := 0; i < MAX_CODE_ATTEMPTS; i++ {
 		code = encodeRaw(generateRandomRaw())

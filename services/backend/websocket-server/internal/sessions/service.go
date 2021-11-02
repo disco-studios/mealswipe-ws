@@ -14,7 +14,7 @@ import (
 )
 
 func getIdFromCode(ctx context.Context, code string) (sessionId string, err error) {
-	span, ctx := apm.StartSpan(ctx, "getIdFromCode", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "getIdFromCode", "sessions")
 	defer span.End()
 
 	key := keys.BuildCodeKey(code)
@@ -23,7 +23,7 @@ func getIdFromCode(ctx context.Context, code string) (sessionId string, err erro
 }
 
 func getActiveUsers(ctx context.Context, sessionId string) (activeUsers []string, err error) {
-	span, ctx := apm.StartSpan(ctx, "getActiveUsers", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "getActiveUsers", "sessions")
 	defer span.End()
 
 	hGetAll := msredis.GetRedisClient().HGetAll(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE))
@@ -47,7 +47,7 @@ func getActiveUsers(ctx context.Context, sessionId string) (activeUsers []string
 }
 
 func getActiveNicknames(ctx context.Context, sessionId string) (activeNicknames []string, err error) {
-	span, ctx := apm.StartSpan(ctx, "getActiveNicknames", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "getActiveNicknames", "sessions")
 	defer span.End()
 
 	activeUsers, err := GetActiveUsers(ctx, sessionId)
@@ -76,7 +76,7 @@ func getActiveNicknames(ctx context.Context, sessionId string) (activeNicknames 
 }
 
 func joinById(ctx context.Context, userId string, sessionId string, nickname string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
-	span, ctx := apm.StartSpan(ctx, "joinById", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "joinById", "sessions")
 	defer span.End()
 
 	pipe := msredis.GetRedisClient().Pipeline()
@@ -112,7 +112,7 @@ func reverse(venues []string) []string {
 }
 
 func start(ctx context.Context, code string, sessionId string, venueIds []string, distances []float64) (err error) {
-	span, ctx := apm.StartSpan(ctx, "start", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "start", "sessions")
 	defer span.End()
 
 	pipe := msredis.GetRedisClient().Pipeline()
@@ -142,7 +142,7 @@ func start(ctx context.Context, code string, sessionId string, venueIds []string
 }
 
 func vote(ctx context.Context, userId string, sessionId string, index int32, state bool) (err error) {
-	span, ctx := apm.StartSpan(ctx, "vote", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "vote", "sessions")
 	defer span.End()
 
 	voteBit := 0
@@ -154,7 +154,7 @@ func vote(ctx context.Context, userId string, sessionId string, index int32, sta
 }
 
 func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex int32, err error) {
-	span, ctx := apm.StartSpan(ctx, "getWinIndex", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "getWinIndex", "sessions")
 	defer span.End()
 
 	activeUsers, err := GetActiveUsers(ctx, sessionId)
@@ -185,7 +185,7 @@ func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex 
 }
 
 func create(ctx context.Context, code string, sessionId string, userId string) (err error) {
-	span, ctx := apm.StartSpan(ctx, "create", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "create", "sessions")
 	defer span.End()
 
 	pipe := msredis.GetRedisClient().Pipeline()
@@ -205,7 +205,7 @@ func create(ctx context.Context, code string, sessionId string, userId string) (
 }
 
 func nextVoteInd(ctx context.Context, sessionId string, userId string) (index int, err error) {
-	span, ctx := apm.StartSpan(ctx, "nextVoteInd", "sessions.service")
+	span, ctx := apm.StartSpan(ctx, "nextVoteInd", "sessions")
 	defer span.End()
 
 	// TODO Should we really store this in a set? Probably not

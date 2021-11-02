@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
+	"go.elastic.co/apm"
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/codes"
 	"mealswipe.app/mealswipe/internal/locations"
@@ -16,18 +17,30 @@ import (
 )
 
 func GetIdFromCode(ctx context.Context, code string) (sessionId string, err error) {
+	span, ctx := apm.StartSpan(ctx, "GetIdFromCode", "sessions")
+	defer span.End()
+
 	return getIdFromCode(ctx, code)
 }
 
 func GetActiveUsers(ctx context.Context, sessionId string) (activeUsers []string, err error) {
+	span, ctx := apm.StartSpan(ctx, "GetActiveUsers", "sessions")
+	defer span.End()
+
 	return getActiveUsers(ctx, sessionId)
 }
 
 func GetActiveNicknames(ctx context.Context, sessionId string) (activeNicknames []string, err error) {
+	span, ctx := apm.StartSpan(ctx, "GetActiveNicknames", "sessions")
+	defer span.End()
+
 	return getActiveNicknames(ctx, sessionId)
 }
 
 func JoinById(ctx context.Context, userState *types.UserState, sessionId string, code string) (err error) {
+	span, ctx := apm.StartSpan(ctx, "JoinById", "sessions")
+	defer span.End()
+
 	logging.Get().Info("user joined session", logging.Metric("session_join"), zap.String("nickname", userState.Nickname), logging.UserId(userState.UserId), logging.SessionId(sessionId))
 	redisPubsub, err := joinById(ctx, userState.UserId, sessionId, userState.Nickname, userState.PubsubChannel)
 	if err != nil {
@@ -50,6 +63,9 @@ func HandleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<-
 }
 
 func Start(ctx context.Context, code string, sessionId string, lat float64, lng float64, radius int32, categoryId string) (err error) {
+	span, ctx := apm.StartSpan(ctx, "Start", "sessions")
+	defer span.End()
+
 	logging.Get().Info(
 		"game started",
 		logging.Metric("game_start"),
@@ -75,10 +91,16 @@ func Start(ctx context.Context, code string, sessionId string, lat float64, lng 
 }
 
 func Vote(ctx context.Context, userId string, sessionId string, index int32, state bool) (err error) {
+	span, ctx := apm.StartSpan(ctx, "Vote", "sessions")
+	defer span.End()
+
 	return vote(ctx, userId, sessionId, index, state)
 }
 
 func CheckWin(ctx context.Context, userState *types.UserState) (err error) {
+	span, ctx := apm.StartSpan(ctx, "CheckWin", "sessions")
+	defer span.End()
+
 	win, winIndex, err := getWinIndex(ctx, userState.JoinedSessionId)
 	if err != nil {
 		err = fmt.Errorf("check win index: %w", err)
@@ -114,6 +136,9 @@ func CheckWin(ctx context.Context, userState *types.UserState) (err error) {
 }
 
 func Create(ctx context.Context, userState *types.UserState) (sessionID string, code string, err error) {
+	span, ctx := apm.StartSpan(ctx, "Create", "sessions")
+	defer span.End()
+
 	sessionID = "s-" + uuid.NewString()
 	code, err = codes.Reserve(ctx, sessionID)
 	if err != nil {
@@ -124,6 +149,9 @@ func Create(ctx context.Context, userState *types.UserState) (sessionID string, 
 }
 
 func GetNextLocForUser(ctx context.Context, userState *types.UserState) (loc *mealswipepb.Location, err error) {
+	span, ctx := apm.StartSpan(ctx, "GetNextLocForUser", "sessions")
+	defer span.End()
+
 	ind, err := nextVoteInd(ctx, userState.JoinedSessionId, userState.UserId)
 	if err != nil {
 		return
@@ -134,6 +162,9 @@ func GetNextLocForUser(ctx context.Context, userState *types.UserState) (loc *me
 }
 
 func SendNextLocToUser(ctx context.Context, userState *types.UserState) (err error) {
+	span, ctx := apm.StartSpan(ctx, "SendNextLocToUser", "sessions")
+	defer span.End()
+
 	loc, err := GetNextLocForUser(ctx, userState)
 	if err != nil {
 		return

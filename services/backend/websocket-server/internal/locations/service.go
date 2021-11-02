@@ -42,7 +42,7 @@ var ALLOWED_CATEGORIES = []string{
 const DISABLE_CACHING = false
 
 func fromIdCached(ctx context.Context, loc_id string) (miss bool, locStore *mealswipepb.LocationStore, err error) {
-	span, ctx := apm.StartSpan(ctx, "fromIdCached", "locations.service")
+	span, ctx := apm.StartSpan(ctx, "fromIdCached", "locations")
 	defer span.End()
 
 	get := msredis.GetRedisClient().Get(ctx, keys.BuildLocKey(loc_id))
@@ -71,8 +71,11 @@ func fromIdCached(ctx context.Context, loc_id string) (miss bool, locStore *meal
 }
 
 func fromIdFresh(ctx context.Context, loc_id string) (locationStore *mealswipepb.LocationStore, err error) {
-	span, _ := apm.StartSpan(ctx, "fromIdFresh", "locations.service")
+	span, ctx := apm.StartSpan(ctx, "fromIdFresh", "locations")
 	defer span.End()
+
+	reqspan, _ := apm.StartSpan(ctx, "fromIdFresh", "foursquare-api")
+	defer reqspan.End()
 
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/%s?client_id=%s&client_secret=%s&v=%s",
@@ -95,6 +98,8 @@ func fromIdFresh(ctx context.Context, loc_id string) (locationStore *mealswipepb
 		err = fmt.Errorf("reading loc from resp: %v", err)
 		return
 	}
+
+	reqspan.End()
 
 	// Turn the response into a struct
 	respObj := &types.VenueRequestResponse{}
@@ -161,7 +166,7 @@ func fromStore(locationStore *mealswipepb.LocationStore, index int32) (loc *meal
 // TODO Make this take the standard array
 // TODO Make the standard array into a struct so she less messy (loc object probably)
 func writeLocationStore(ctx context.Context, loc_id string, locationStore *mealswipepb.LocationStore) (err error) {
-	span, ctx := apm.StartSpan(ctx, "writeLocationStore", "locations.service")
+	span, ctx := apm.StartSpan(ctx, "writeLocationStore", "locations")
 	defer span.End()
 
 	if locationStore.FoursquareLoc.Name == "" {
@@ -186,7 +191,7 @@ func writeLocationStore(ctx context.Context, loc_id string, locationStore *meals
 }
 
 func idFromInd(ctx context.Context, sessionId string, index int32) (locId string, distanceVal string, err error) {
-	span, ctx := apm.StartSpan(ctx, "idFromInd", "locations.service")
+	span, ctx := apm.StartSpan(ctx, "idFromInd", "locations")
 	defer span.End()
 
 	pipe := msredis.GetRedisClient().Pipeline()
@@ -222,8 +227,11 @@ func idFromInd(ctx context.Context, sessionId string, index int32) (locId string
 }
 
 func getLocationsNear(ctx context.Context, lat float64, lng float64, radius int32, categoryId string) (respObj *types.LocationRequestResponse, err error) {
-	span, _ := apm.StartSpan(ctx, "getLocationsNear", "locations.service")
+	span, _ := apm.StartSpan(ctx, "getLocationsNear", "locations")
 	defer span.End()
+
+	reqspan, _ := apm.StartSpan(ctx, "fromIdFresh", "foursquare-api")
+	defer reqspan.End()
 
 	requestUrl := fmt.Sprintf(
 		"https://api.foursquare.com/v2/venues/search?client_id=%s&client_secret=%s&v=%s&ll=%f,%f&intent=browse&radius=%d&limit=50&categoryId=%s",
@@ -249,6 +257,8 @@ func getLocationsNear(ctx context.Context, lat float64, lng float64, radius int3
 		err = fmt.Errorf("read bytes from resp: %v", err)
 		return
 	}
+
+	reqspan.End()
 
 	// Turn the response into a struct
 	respObj = &types.LocationRequestResponse{}
@@ -295,7 +305,7 @@ func shuffleVenues(venues []types.Venue) {
 }
 
 func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenues []types.Venue, err error) {
-	span, ctx := apm.StartSpan(ctx, "findOptimalVenues", "locations.service")
+	span, ctx := apm.StartSpan(ctx, "findOptimalVenues", "locations")
 	defer span.End()
 
 	logger := logging.Get()
@@ -380,7 +390,7 @@ func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenu
 }
 
 func clearCache(ctx context.Context) (cleared_len int, err error) {
-	span, ctx := apm.StartSpan(ctx, "clearCache", "locations.service")
+	span, ctx := apm.StartSpan(ctx, "clearCache", "locations")
 	defer span.End()
 
 	redisClient := msredis.GetRedisClient()

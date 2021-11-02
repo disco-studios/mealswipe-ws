@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"strconv"
 
+	"go.elastic.co/apm"
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.Location, err error) {
+	span, ctx := apm.StartSpan(ctx, "FromId", "locations")
+	defer span.End()
+
 	logger := logging.Get()
 
 	miss, locationStore, err := fromIdCached(ctx, loc_id)
@@ -44,6 +48,9 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 }
 
 func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipepb.Location, err error) {
+	span, ctx := apm.StartSpan(ctx, "FromInd", "locations")
+	defer span.End()
+
 	logger := logging.Get()
 
 	locId, distance, err := idFromInd(ctx, sessionId, index)
@@ -76,6 +83,9 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 }
 
 func IdsForLocation(ctx context.Context, lat float64, lng float64, radius int32, _categoryId string) (loc_id []string, distances []float64, err error) {
+	span, ctx := apm.StartSpan(ctx, "IdsForLocation", "locations")
+	defer span.End()
+
 	categoryId := "4d4b7105d754a06374d81259" // category id (4d4b7105d754a06374d81259 food, 4bf58dd8d48988d14c941735 fast food)
 	if _categoryId != "" {
 		for _, allowedCategoryId := range ALLOWED_CATEGORIES {
@@ -106,5 +116,8 @@ func IdsForLocation(ctx context.Context, lat float64, lng float64, radius int32,
 }
 
 func ClearCache(ctx context.Context) (cleared_len int, err error) {
+	span, ctx := apm.StartSpan(ctx, "ClearCache", "locations")
+	defer span.End()
+
 	return clearCache(ctx)
 }

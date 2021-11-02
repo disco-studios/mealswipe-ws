@@ -18,7 +18,7 @@ func (e *CodeAlreadyExistsError) Error() string {
 }
 
 func attemptReserveCode(ctx context.Context, sessionId string, code string) (err error) {
-	span, ctx := apm.StartSpan(ctx, "attemptReserveCode", "codes.service")
+	span, ctx := apm.StartSpan(ctx, "attemptReserveCode", "codes")
 	defer span.End()
 
 	// TODO Handle this a bit better, we could miss errors

@@ -36,7 +36,7 @@ func LoadRedisMockClient() redismock.ClientMock {
 }
 
 func PubsubWrite(ctx context.Context, channel string, message string) (err error) {
-	span, ctx := apm.StartSpan(ctx, "PubsubWrite", "msredis.service")
+	span, ctx := apm.StartSpan(ctx, "PubsubWrite", "msredis")
 	defer span.End()
 
 	err = _rfedisClient.Publish(ctx, channel, message).Err()

@@ -1,6 +1,9 @@
 package logging
 
 import (
+	"context"
+
+	"go.elastic.co/apm/module/apmzap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -17,6 +20,12 @@ func SetLogger(logr *zap.Logger) {
 
 func Get() *zap.Logger {
 	return logger
+}
+
+func GetWithCtx(ctx context.Context) *zap.Logger {
+	traceContextFields := apmzap.TraceContext(ctx)
+
+	return logger.With(traceContextFields...)
 }
 
 func SessionId(sessionId string) zapcore.Field {
