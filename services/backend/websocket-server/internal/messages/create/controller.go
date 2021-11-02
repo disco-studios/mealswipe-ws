@@ -57,7 +57,7 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, createMess
 		err = fmt.Errorf("validate nickname: %w", err)
 		return err
 	} else if !nicknameValid {
-		logging.Get().Info("invalid nickname given", logging.Metric("bad_nickname"), zap.String("nickname", createMessage.Nickname))
+		logging.ApmCtx(ctx).Info("invalid nickname given", logging.Metric("bad_nickname"), zap.String("nickname", createMessage.Nickname))
 		return &mealswipe.MessageValidationError{
 			MessageType:   "create",
 			Clarification: "invalid nickname",

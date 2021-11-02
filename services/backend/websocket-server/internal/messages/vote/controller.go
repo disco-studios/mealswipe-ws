@@ -16,14 +16,13 @@ import (
 var AcceptibleHostStates_Vote = []int16{mealswipe.HostState_HOSTING, mealswipe.HostState_JOINING}
 
 func HandleMessage(ctx context.Context, userState *types.UserState, voteMessage *mealswipepb.VoteMessage) (err error) {
-	logger := logging.Get()
 	err = sessions.Vote(ctx, userState.UserId, userState.JoinedSessionId, voteMessage.Index, voteMessage.Vote)
 	if err != nil {
 		err = fmt.Errorf("vote: %w", err)
 		return
 	}
 
-	logger.Info("user_vote",
+	logging.ApmCtx(ctx).Info("user_vote",
 		logging.Metric("swipe_dir"),
 		zap.Bool("right", voteMessage.Vote),
 		logging.SessionId(userState.JoinedSessionId),

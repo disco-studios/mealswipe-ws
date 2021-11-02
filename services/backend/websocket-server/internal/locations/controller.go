@@ -15,8 +15,6 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 	span, ctx := apm.StartSpan(ctx, "FromId", "locations")
 	defer span.End()
 
-	logger := logging.Get()
-
 	miss, locationStore, err := fromIdCached(ctx, loc_id)
 	if err != nil {
 		err = fmt.Errorf("getting loc from cache: %w", err)
@@ -37,7 +35,7 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 		}
 	}
 
-	logger.Info("location loaded", logging.Metric("loc_load"), zap.Bool("cache_hit", !miss), logging.LocId(loc_id))
+	logging.ApmCtx(ctx).Info("location loaded", logging.Metric("loc_load"), zap.Bool("cache_hit", !miss), logging.LocId(loc_id))
 
 	loc, err = fromStore(locationStore, index)
 	if err != nil {
@@ -51,8 +49,6 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 	span, ctx := apm.StartSpan(ctx, "FromInd", "locations")
 	defer span.End()
 
-	logger := logging.Get()
-
 	locId, distance, err := idFromInd(ctx, sessionId, index)
 	if err != nil {
 		err = fmt.Errorf("getting id for ind: %w", err)
@@ -60,7 +56,7 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 	}
 
 	if len(locId) == 0 {
-		logger.Info("ran out of locations", logging.Metric("out_of_locations"), logging.SessionId(sessionId), zap.Int("index", int(index)))
+		logging.ApmCtx(ctx).Info("ran out of locations", logging.Metric("out_of_locations"), logging.SessionId(sessionId), zap.Int("index", int(index)))
 		return &mealswipepb.Location{
 			OutOfLocations: true,
 		}, nil
@@ -75,7 +71,7 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 	distInt, err := strconv.ParseInt(distance, 10, 32)
 	if err != nil {
 		err = fmt.Errorf("parse int: %v", err)
-		logger.Error("failed to convert distance to int", logging.SessionId(sessionId), logging.LocId(locId), zap.String("distance", distance))
+		logging.ApmCtx(ctx).Error("failed to convert distance to int", logging.SessionId(sessionId), logging.LocId(locId), zap.String("distance", distance))
 	}
 	loc.Distance = int32(distInt)
 

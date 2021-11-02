@@ -41,7 +41,7 @@ func JoinById(ctx context.Context, userState *types.UserState, sessionId string,
 	span, ctx := apm.StartSpan(ctx, "JoinById", "sessions")
 	defer span.End()
 
-	logging.Get().Info("user joined session", logging.Metric("session_join"), zap.String("nickname", userState.Nickname), logging.UserId(userState.UserId), logging.SessionId(sessionId))
+	logging.ApmCtx(ctx).Info("user joined session", logging.Metric("session_join"), zap.String("nickname", userState.Nickname), logging.UserId(userState.UserId), logging.SessionId(sessionId))
 	redisPubsub, err := joinById(ctx, userState.UserId, sessionId, userState.Nickname, userState.PubsubChannel)
 	if err != nil {
 		err = fmt.Errorf("join by id: %w", err)
@@ -66,7 +66,7 @@ func Start(ctx context.Context, code string, sessionId string, lat float64, lng 
 	span, ctx := apm.StartSpan(ctx, "Start", "sessions")
 	defer span.End()
 
-	logging.Get().Info(
+	logging.ApmCtx(ctx).Info(
 		"game started",
 		logging.Metric("game_start"),
 		logging.Code(code),

@@ -22,7 +22,7 @@ func Get() *zap.Logger {
 	return logger
 }
 
-func GetWithCtx(ctx context.Context) *zap.Logger {
+func ApmCtx(ctx context.Context) *zap.Logger {
 	traceContextFields := apmzap.TraceContext(ctx)
 
 	return logger.With(traceContextFields...)

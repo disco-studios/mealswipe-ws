@@ -120,14 +120,14 @@ func readPump(connection *websocket.Conn, userState *types.UserState) {
 
 		err = messages.ValidateMessage(userState, genericMessage)
 		if err != nil {
-			logger.Info("failed to validate message", logging.Metric("in_message_length"), zap.Any("raw", genericMessage), zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+			logging.ApmCtx(ctx).Info("failed to validate message", logging.Metric("in_message_length"), zap.Any("raw", genericMessage), zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
 			return
 		}
 
 		err = messages.HandleMessage(ctx, userState, genericMessage)
 		if err != nil {
 			// TODO Don't always die when we have an error, just sometimes
-			logger.Error("message handler encountered error", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId), zap.Any("raw", genericMessage))
+			logging.ApmCtx(ctx).Error("message handler encountered error", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId), zap.Any("raw", genericMessage))
 			return
 		}
 
