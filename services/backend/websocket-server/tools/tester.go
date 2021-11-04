@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -97,6 +98,7 @@ func main() {
 	fmt.Println("| * spawn                         | creates a new websocket instance               |")
 	fmt.Println("| * create <ws#> <nickname>       | creates a lobby with ws <ws#>                  |")
 	fmt.Println("| * join <ws#> <nickname> <code>  | joins ws <ws#> into lobby <code>               |")
+	fmt.Println("| * rejoin <ws#> <uid> <sid>      | rejoins ws <ws#> based on user and session id  |")
 	fmt.Println("| * start <ws#>                   | uses ws <ws#> to start at philly example loc   |")
 	fmt.Println("| * start <ws#> <lat> <lng> <rad> | uses ws <ws#> to start at <lat>,<lng> in <rad> |")
 	fmt.Println("| * vote <ws#> <ind> <y/n>        | votes for ws <ws#>                             |")
@@ -149,6 +151,23 @@ func main() {
 					JoinMessage: &mealswipepb.JoinMessage{
 						Nickname: parts[2],
 						Code:     parts[3],
+					},
+				})
+				fmt.Println("> Done")
+			}
+		} else if strings.Compare("rejoin", parts[0]) == 0 {
+			if len(parts) != 4 {
+				fmt.Println("> Please do better. Wrong arg count.")
+			} else {
+				socketNum, _ := strconv.Atoi(parts[1])
+				if socketNum >= len(sockets) {
+					fmt.Println("> That socket doesn't exist dummy")
+					continue
+				}
+				write_message_delay(socketNum, &mealswipepb.WebsocketMessage{
+					JoinMessage: &mealswipepb.JoinMessage{
+						UserId:    parts[2],
+						SessionId: parts[3],
 					},
 				})
 				fmt.Println("> Done")

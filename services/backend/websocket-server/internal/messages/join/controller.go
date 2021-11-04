@@ -15,36 +15,56 @@ import (
 
 func HandleMessage(ctx context.Context, userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
 
-	// Get the session ID for the given code
-	sessionId, err := sessions.GetIdFromCode(ctx, joinMessage.Code)
-	if err != nil {
-		err = fmt.Errorf("get id from code: %w", err)
+	if joinMessage.SessionId != "" && joinMessage.UserId != "" {
+		userState.JoinedSessionId = joinMessage.SessionId
+		userState.UserId = joinMessage.UserId
+
+		inGame, _err := sessions.Rejoin(ctx, userState)
+		if _err != nil {
+			err = fmt.Errorf("rejoin: %w", _err)
+			return
+		}
+
+		if !inGame {
+			err = fmt.Errorf("bad rejoin info given")
+		}
+
+		userState.HostState = mealswipe.HostState_JOINING
+
 		return
+	} else {
+		// Get the session ID for the given code
+		sessionId, _err := sessions.GetIdFromCode(ctx, joinMessage.Code)
+		if _err != nil {
+			err = fmt.Errorf("get id from code: %w", _err)
+			return
+		}
+
+		// Join the user into the new session
+		userState.Nickname = joinMessage.Nickname
+		err = sessions.JoinById(ctx, userState, sessionId, joinMessage.Code)
+		if err != nil {
+			err = fmt.Errorf("join by id: %w", err)
+			return
+		}
+		userState.HostState = mealswipe.HostState_JOINING
+
+		// Send the lobby info to the user
+		inLobbyNicknames, _err := sessions.GetActiveNicknames(ctx, userState.JoinedSessionId)
+		if _err != nil {
+			err = fmt.Errorf("get active nicknames for lobby info: %w", _err)
+		}
+
+		// Broadcast user join
+		userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
+			LobbyInfoMessage: &mealswipepb.LobbyInfoMessage{
+				Code:     joinMessage.Code,
+				Nickname: userState.Nickname,
+				Users:    inLobbyNicknames,
+			},
+		})
 	}
 
-	// Join the user into the new session
-	userState.Nickname = joinMessage.Nickname
-	err = sessions.JoinById(ctx, userState, sessionId, joinMessage.Code)
-	if err != nil {
-		err = fmt.Errorf("join by id: %w", err)
-		return
-	}
-	userState.HostState = mealswipe.HostState_JOINING
-
-	// Send the lobby info to the user
-	inLobbyNicknames, err := sessions.GetActiveNicknames(ctx, userState.JoinedSessionId)
-	if err != nil {
-		err = fmt.Errorf("get active nicknames for lobby info: %w", err)
-	}
-
-	// Broadcast user join
-	userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
-		LobbyInfoMessage: &mealswipepb.LobbyInfoMessage{
-			Code:     joinMessage.Code,
-			Nickname: userState.Nickname,
-			Users:    inLobbyNicknames,
-		},
-	})
 	return
 }
 
@@ -58,33 +78,35 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessag
 		return err
 	}
 
-	// Validate that code is valid format
-	if !common.IsCodeValid(joinMessage.Code) {
-		logging.ApmCtx(ctx).Info("invalid code given", logging.Metric("bad_code"), zap.String("code", joinMessage.Code))
-		return &mealswipe.MessageValidationError{
-			MessageType:   "join",
-			Clarification: "invalid code format",
+	if joinMessage.UserId == "" || joinMessage.SessionId == "" {
+		// Validate that code is valid format
+		if !common.IsCodeValid(joinMessage.Code) {
+			logging.ApmCtx(ctx).Info("invalid code given", logging.Metric("bad_code"), zap.String("code", joinMessage.Code))
+			return &mealswipe.MessageValidationError{
+				MessageType:   "join",
+				Clarification: "invalid code format",
+			}
 		}
-	}
 
-	// Validate nickname
-	nicknameValid, err := common.IsNicknameValid(joinMessage.Nickname)
-	if err != nil {
-		err = fmt.Errorf("validate nickname: %w", err)
-		return err
-	} else if !nicknameValid {
-		logging.ApmCtx(ctx).Info("invalid nickname given", logging.Metric("bad_nickname"), zap.String("nickname", joinMessage.Nickname))
-		return &mealswipe.MessageValidationError{
-			MessageType:   "join",
-			Clarification: "invalid nickname",
+		// Validate nickname
+		nicknameValid, err := common.IsNicknameValid(joinMessage.Nickname)
+		if err != nil {
+			err = fmt.Errorf("validate nickname: %w", err)
+			return err
+		} else if !nicknameValid {
+			logging.ApmCtx(ctx).Info("invalid nickname given", logging.Metric("bad_nickname"), zap.String("nickname", joinMessage.Nickname))
+			return &mealswipe.MessageValidationError{
+				MessageType:   "join",
+				Clarification: "invalid nickname",
+			}
 		}
-	}
 
-	// Validate that this session actually exists
-	sessionId, err := sessions.GetIdFromCode(ctx, joinMessage.Code)
-	if err != nil || sessionId == "" {
-		err = fmt.Errorf("get session id from code: %w", err)
-		return err
+		// Validate that this session actually exists
+		sessionId, err := sessions.GetIdFromCode(ctx, joinMessage.Code)
+		if err != nil || sessionId == "" {
+			err = fmt.Errorf("get session id from code: %w", err)
+			return err
+		}
 	}
 
 	return

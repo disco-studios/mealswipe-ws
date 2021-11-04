@@ -104,6 +104,26 @@ func joinById(ctx context.Context, userId string, sessionId string, nickname str
 	return
 }
 
+func rejoin(ctx context.Context, userId string, sessionId string, genericPubsub chan<- string) (redisPubsub *redis.PubSub, err error) {
+	span, ctx := apm.StartSpan(ctx, "rejoin", "sessions")
+	defer span.End()
+
+	// Initiate a pubsub with this session
+	redisPubsub = msredis.Subscribe(ctx, keys.BuildSessionKey(sessionId, ""))
+	pubsubChannel := redisPubsub.Channel()
+	go HandleRedisMessages(pubsubChannel, genericPubsub)
+
+	return
+}
+
+func isUserInId(ctx context.Context, userId string, sessionId string) (inGame bool, err error) {
+	span, ctx := apm.StartSpan(ctx, "getIdFromCode", "sessions")
+	defer span.End()
+
+	result := msredis.SIsMember(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS), userId)
+	return result.Val(), result.Err()
+}
+
 func reverse(venues []string) []string {
 	for i, j := 0, len(venues)-1; i < j; i, j = i+1, j-1 {
 		venues[i], venues[j] = venues[j], venues[i]

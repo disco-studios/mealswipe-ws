@@ -143,3 +143,11 @@ func HSet(ctx context.Context, key string, values ...interface{}) *redis.IntCmd 
 		return _redisClient.HSet(ctx, key, values...)
 	}
 }
+
+func SIsMember(ctx context.Context, key string, member interface{}) *redis.BoolCmd {
+	if CLUSTER {
+		return _redisClusterClient.SIsMember(ctx, key, member)
+	} else {
+		return _redisClient.SIsMember(ctx, key, member)
+	}
+}

@@ -55,6 +55,22 @@ func JoinById(ctx context.Context, userState *types.UserState, sessionId string,
 	return
 }
 
+func Rejoin(ctx context.Context, userState *types.UserState) (inGame bool, err error) {
+	inGame, err = isUserInId(ctx, userState.UserId, userState.JoinedSessionId)
+	if (err != nil) || (!inGame) {
+		return
+	}
+
+	redisPubsub, err := rejoin(ctx, userState.UserId, userState.JoinedSessionId, userState.PubsubChannel)
+	if err != nil {
+		err = fmt.Errorf("rejoin by id: %w", err)
+		return
+	}
+	userState.RedisPubsub = redisPubsub
+
+	return
+}
+
 // TODO This shouldn't live here
 func HandleRedisMessages(redisPubsub <-chan *redis.Message, genericPubsub chan<- string) {
 	for msg := range redisPubsub {
