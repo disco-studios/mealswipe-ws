@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
+	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/messages"
 	"mealswipe.app/mealswipe/internal/sessions"
@@ -32,7 +33,17 @@ func pubsubPump(userState *types.UserState, messageQueue <-chan string) {
 		if err != nil {
 			logger.Error("pubsump pump failed to unmarshal protobuf", zap.Error(err))
 		} else {
+			// Inject user information to lobby info message if present
+			if common.HasLobbyInfoMessage(websocketResponse) {
+				message := websocketResponse.GetLobbyInfoMessage()
+				message.SessionId = userState.JoinedSessionId
+				message.UserId = userState.UserId
+			}
+
+			// Send the response
 			userState.SendWebsocketMessage(websocketResponse)
+
+			// If it was a game started, send the next locs too
 			if websocketResponse.GetGameStartedMessage() != nil {
 				for i := 0; i < 2; i++ {
 					err := sessions.SendNextLocToUser(context.TODO(), userState)

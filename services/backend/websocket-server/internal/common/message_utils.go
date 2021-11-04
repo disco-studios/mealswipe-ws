@@ -17,3 +17,7 @@ func HasJoinMessage(genericMessage *mealswipepb.WebsocketMessage) bool {
 func HasVoteMessage(genericMessage *mealswipepb.WebsocketMessage) bool {
 	return (*genericMessage).GetVoteMessage() != nil
 }
+
+func HasLobbyInfoMessage(genericMessage *mealswipepb.WebsocketResponse) bool {
+	return (*genericMessage).GetLobbyInfoMessage() != nil
+}

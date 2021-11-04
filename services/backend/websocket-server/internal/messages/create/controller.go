@@ -36,9 +36,11 @@ func HandleMessage(ctx context.Context, userState *types.UserState, createMessag
 	// Send the lobby info to the user
 	userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
 		LobbyInfoMessage: &mealswipepb.LobbyInfoMessage{
-			Code:     code,
-			Nickname: userState.Nickname,
-			Users:    []string{userState.Nickname},
+			Code:      code,
+			Nickname:  userState.Nickname,
+			Users:     []string{userState.Nickname},
+			SessionId: userState.JoinedSessionId,
+			UserId:    userState.UserId,
 		},
 	})
 	return
