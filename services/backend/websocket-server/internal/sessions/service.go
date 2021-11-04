@@ -18,7 +18,7 @@ func getIdFromCode(ctx context.Context, code string) (sessionId string, err erro
 	defer span.End()
 
 	key := keys.BuildCodeKey(code)
-	result := msredis.GetRedisClient().Get(ctx, key)
+	result := msredis.Get(ctx, key)
 	return result.Val(), result.Err()
 }
 
@@ -26,7 +26,7 @@ func getActiveUsers(ctx context.Context, sessionId string) (activeUsers []string
 	span, ctx := apm.StartSpan(ctx, "getActiveUsers", "sessions")
 	defer span.End()
 
-	hGetAll := msredis.GetRedisClient().HGetAll(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE))
+	hGetAll := msredis.HGetAll(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_ACTIVE))
 	if err = hGetAll.Err(); err != nil {
 		err = fmt.Errorf("redis hgetall: %v", err)
 		return
@@ -56,7 +56,7 @@ func getActiveNicknames(ctx context.Context, sessionId string) (activeNicknames 
 		return
 	}
 
-	hGetAll := msredis.GetRedisClient().HGetAll(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_NICKNAMES))
+	hGetAll := msredis.HGetAll(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS_NICKNAMES))
 	if err = hGetAll.Err(); err != nil {
 		err = fmt.Errorf("redis hgetall: %v", err)
 		return
@@ -79,7 +79,7 @@ func joinById(ctx context.Context, userId string, sessionId string, nickname str
 	span, ctx := apm.StartSpan(ctx, "joinById", "sessions")
 	defer span.End()
 
-	pipe := msredis.GetRedisClient().Pipeline()
+	pipe := msredis.Pipeline()
 	timeToLive := time.Hour * 24
 
 	pipe.SetNX(ctx, keys.BuildUserKey(userId, keys.KEY_USER_SESSION), sessionId, time.Hour*24)
@@ -97,7 +97,7 @@ func joinById(ctx context.Context, userId string, sessionId string, nickname str
 	}
 
 	// Initiate a pubsub with this session
-	redisPubsub = msredis.GetRedisClient().Subscribe(ctx, keys.BuildSessionKey(sessionId, ""))
+	redisPubsub = msredis.Subscribe(ctx, keys.BuildSessionKey(sessionId, ""))
 	pubsubChannel := redisPubsub.Channel()
 	go HandleRedisMessages(pubsubChannel, genericPubsub)
 
@@ -115,7 +115,7 @@ func start(ctx context.Context, code string, sessionId string, venueIds []string
 	span, ctx := apm.StartSpan(ctx, "start", "sessions")
 	defer span.End()
 
-	pipe := msredis.GetRedisClient().Pipeline()
+	pipe := msredis.Pipeline()
 
 	timeToLive := time.Hour * 24
 
@@ -150,7 +150,7 @@ func vote(ctx context.Context, userId string, sessionId string, index int32, sta
 		voteBit = 1
 	}
 
-	return msredis.GetRedisClient().SetBit(ctx, keys.BuildVotesKey(sessionId, userId), int64(index), voteBit).Err()
+	return msredis.SetBit(ctx, keys.BuildVotesKey(sessionId, userId), int64(index), voteBit).Err()
 }
 
 func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex int32, err error) {
@@ -168,7 +168,7 @@ func getWinIndex(ctx context.Context, sessionId string) (win bool, winningIndex 
 		voteKeys = append(voteKeys, keys.BuildVotesKey(sessionId, userId))
 	}
 
-	pipe := msredis.GetRedisClient().Pipeline()
+	pipe := msredis.Pipeline()
 
 	pipe.BitOpAnd(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTE_TALLY), voteKeys...)
 	winningIndexResult := pipe.BitPos(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTE_TALLY), 1)
@@ -188,7 +188,7 @@ func create(ctx context.Context, code string, sessionId string, userId string) (
 	span, ctx := apm.StartSpan(ctx, "create", "sessions")
 	defer span.End()
 
-	pipe := msredis.GetRedisClient().Pipeline()
+	pipe := msredis.Pipeline()
 
 	timeToLive := time.Hour * 24
 
@@ -209,7 +209,7 @@ func nextVoteInd(ctx context.Context, sessionId string, userId string) (index in
 	defer span.End()
 
 	// TODO Should we really store this in a set? Probably not
-	current := msredis.GetRedisClient().HGet(
+	current := msredis.HGet(
 		ctx,
 		keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTEIND),
 		userId,
@@ -227,7 +227,7 @@ func nextVoteInd(ctx context.Context, sessionId string, userId string) (index in
 	}
 
 	go func() {
-		res := msredis.GetRedisClient().HSet(
+		res := msredis.HSet(
 			ctx,
 			keys.BuildSessionKey(sessionId, keys.KEY_SESSION_VOTEIND),
 			userId,

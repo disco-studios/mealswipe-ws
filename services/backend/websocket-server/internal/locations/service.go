@@ -45,7 +45,7 @@ func fromIdCached(ctx context.Context, loc_id string) (miss bool, locStore *meal
 	span, ctx := apm.StartSpan(ctx, "fromIdCached", "locations")
 	defer span.End()
 
-	get := msredis.GetRedisClient().Get(ctx, keys.BuildLocKey(loc_id))
+	get := msredis.Get(ctx, keys.BuildLocKey(loc_id))
 
 	err = get.Err()
 	if err == redis.Nil {
@@ -180,7 +180,7 @@ func writeLocationStore(ctx context.Context, loc_id string, locationStore *meals
 		return
 	}
 
-	set := msredis.GetRedisClient().SetEX(ctx, keys.BuildLocKey(loc_id), out, time.Hour*24)
+	set := msredis.SetEX(ctx, keys.BuildLocKey(loc_id), out, time.Hour*24)
 
 	err = set.Err()
 	if err != nil {
@@ -194,7 +194,7 @@ func idFromInd(ctx context.Context, sessionId string, index int32) (locId string
 	span, ctx := apm.StartSpan(ctx, "idFromInd", "locations")
 	defer span.End()
 
-	pipe := msredis.GetRedisClient().Pipeline()
+	pipe := msredis.Pipeline()
 	location := pipe.LIndex(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATIONS), int64(index))
 	distance := pipe.LIndex(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_LOCATION_DISTANCES), int64(index))
 
@@ -230,7 +230,7 @@ func getLocationsNear(ctx context.Context, lat float64, lng float64, radius int3
 	span, _ := apm.StartSpan(ctx, "getLocationsNear", "locations")
 	defer span.End()
 
-	reqspan, _ := apm.StartSpan(ctx, "fromIdFresh", "foursquare-api")
+	reqspan, _ := apm.StartSpan(ctx, "getLocationsNear", "foursquare-api")
 	defer reqspan.End()
 
 	requestUrl := fmt.Sprintf(
@@ -336,7 +336,7 @@ func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenu
 	logging.ApmCtx(ctx).Info("unique locations sorted out", logging.Metric("loc_uniqueness"), zap.Int("unique", len(uniqueNames)), zap.Int("total", len(venues)))
 
 	// Check our database for information about each location
-	pipe := msredis.GetRedisClient().Pipeline()
+	pipe := msredis.Pipeline()
 	var cmds []*redis.StringCmd
 	// var ids []string
 	for _, venue := range uniqueNames {
@@ -392,13 +392,12 @@ func clearCache(ctx context.Context) (cleared_len int, err error) {
 	span, ctx := apm.StartSpan(ctx, "clearCache", "locations")
 	defer span.End()
 
-	redisClient := msredis.GetRedisClient()
 	var cursor uint64
 	var n int
 	for {
 		var dbkeys []string
 		var err error
-		dbkeys, cursor, err = redisClient.Scan(ctx, cursor, fmt.Sprintf("%s*", keys.PREFIX_LOC_API), 15).Result()
+		dbkeys, cursor, err = msredis.Scan(ctx, cursor, fmt.Sprintf("%s*", keys.PREFIX_LOC_API), 15).Result()
 		if err != nil {
 			err = fmt.Errorf("redis scan: %v", err)
 			return n, err
@@ -407,7 +406,7 @@ func clearCache(ctx context.Context) (cleared_len int, err error) {
 		n += len(dbkeys)
 		if len(dbkeys) > 0 {
 			for _, key := range dbkeys {
-				_, err = redisClient.Del(ctx, key).Result()
+				_, err = msredis.Del(ctx, key).Result()
 				if err != nil {
 					err = fmt.Errorf("redis delete: %v", err)
 					return n, err

@@ -22,7 +22,7 @@ func attemptReserveCode(ctx context.Context, sessionId string, code string) (err
 	defer span.End()
 
 	// TODO Handle this a bit better, we could miss errors
-	res, err := msredis.GetRedisClient().SetNX(ctx, keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
+	res, err := msredis.SetNX(ctx, keys.BuildCodeKey(code), sessionId, time.Hour*24).Result()
 	if !res {
 		// TODO This can probably be done better
 		return &CodeAlreadyExistsError{}
