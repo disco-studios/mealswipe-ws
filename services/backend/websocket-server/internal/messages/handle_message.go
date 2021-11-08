@@ -10,6 +10,7 @@ import (
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/messages/create"
 	"mealswipe.app/mealswipe/internal/messages/join"
+	"mealswipe.app/mealswipe/internal/messages/rejoin"
 	"mealswipe.app/mealswipe/internal/messages/start"
 	"mealswipe.app/mealswipe/internal/messages/vote"
 	"mealswipe.app/mealswipe/internal/types"
@@ -61,6 +62,17 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		err = vote.HandleMessage(ctx, userState, genericMessage.GetVoteMessage())
 		if err != nil {
 			err = fmt.Errorf("handle vote message: %w", err)
+		}
+		return
+	} else if common.HasRejoinMessage(genericMessage) {
+		tx := apm.DefaultTracer.StartTransaction("HANDLE rejoin", "request")
+		defer tx.End()
+		ctx = apm.ContextWithTransaction(ctx, tx)
+
+		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "rejoin"))
+		err = rejoin.HandleMessage(ctx, userState, genericMessage.GetRejoinMessage())
+		if err != nil {
+			err = fmt.Errorf("handle rejoin message: %w", err)
 		}
 		return
 	} else {

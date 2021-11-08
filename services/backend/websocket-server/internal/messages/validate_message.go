@@ -6,6 +6,7 @@ import (
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/messages/create"
 	"mealswipe.app/mealswipe/internal/messages/join"
+	"mealswipe.app/mealswipe/internal/messages/rejoin"
 	"mealswipe.app/mealswipe/internal/messages/start"
 	"mealswipe.app/mealswipe/internal/messages/vote"
 	"mealswipe.app/mealswipe/internal/types"
@@ -23,6 +24,8 @@ func ValidateMessage(userState *types.UserState, genericMessage *mealswipepb.Web
 		return start.ValidateMessage(context.TODO(), userState, genericMessage.GetStartMessage())
 	} else if common.HasVoteMessage(genericMessage) {
 		return vote.ValidateMessage(context.TODO(), userState, genericMessage.GetVoteMessage())
+	} else if common.HasRejoinMessage(genericMessage) {
+		return rejoin.ValidateMessage(context.TODO(), userState, genericMessage.GetRejoinMessage())
 	} else {
 		return &mealswipe.UnknownWebsocketMessage{}
 	}

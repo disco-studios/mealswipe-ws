@@ -14,6 +14,10 @@ func HasJoinMessage(genericMessage *mealswipepb.WebsocketMessage) bool {
 	return (*genericMessage).GetJoinMessage() != nil
 }
 
+func HasRejoinMessage(genericMessage *mealswipepb.WebsocketMessage) bool {
+	return (*genericMessage).GetRejoinMessage() != nil
+}
+
 func HasVoteMessage(genericMessage *mealswipepb.WebsocketMessage) bool {
 	return (*genericMessage).GetVoteMessage() != nil
 }

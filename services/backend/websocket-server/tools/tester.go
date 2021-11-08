@@ -165,7 +165,7 @@ func main() {
 					continue
 				}
 				write_message_delay(socketNum, &mealswipepb.WebsocketMessage{
-					JoinMessage: &mealswipepb.JoinMessage{
+					RejoinMessage: &mealswipepb.RejoinMessage{
 						UserId:    parts[2],
 						SessionId: parts[3],
 					},
