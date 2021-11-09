@@ -59,15 +59,13 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	readPump(c, userState)
 }
 
-func decommissionCheckAllDisconnected(done chan struct{}) bool {
+func decommissionCheckAllDisconnected(t time.Time) bool {
 	connected := len(localSessions.GetAll())
 	if connected == 0 {
 		// Tell decomission it can return
-		done <- struct{}{}
-		logging.Get().Info("decomission done") // TODO Remove
 		return true
 	} else {
-		logging.Get().Info("decomission waiting", logging.Metric("decommission_wait"), zap.Int("connected_sessions", connected)) // TODO Remove
+		logging.Get().Info("decomission waiting", logging.Metric("decommission_wait"), zap.Int("connected_sessions", connected), zap.Time("decomission_wait_time", t)) // TODO Remove
 	}
 	return false
 }
@@ -93,8 +91,9 @@ func Decommission() {
 
 	go func() {
 		for {
-			<-ticker.C
-			if decommissionCheckAllDisconnected(done) {
+			t := <-ticker.C
+			if decommissionCheckAllDisconnected(t) {
+				done <- struct{}{}
 				return
 			}
 		}
