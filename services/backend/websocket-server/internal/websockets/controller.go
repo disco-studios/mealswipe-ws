@@ -2,6 +2,7 @@ package websockets
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
@@ -56,4 +57,52 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Call the read pump to handle incoming messages
 	readPump(c, userState)
+}
+
+func decommissionCheckAllDisconnected(done chan struct{}) bool {
+	connected := len(localSessions.GetAll())
+	if connected == 0 {
+		// Tell decomission it can return
+		done <- struct{}{}
+		logging.Get().Info("decomission done") // TODO Remove
+		return true
+	} else {
+		logging.Get().Info("decomission waiting", logging.Metric("decommission_wait"), zap.Int("connected_sessions", connected)) // TODO Remove
+	}
+	return false
+}
+
+func Decommission() {
+	// Let people know they need to move
+	activeSessions := localSessions.GetAll()
+	// TODO We don't need to keep re-marshalling this. Maybe should add a sendRaw
+	doReconnect := &mealswipepb.WebsocketResponse{
+		Reconnect: &mealswipepb.DoReconnectMessage{},
+	}
+
+	for _, session := range activeSessions {
+		session.SendWebsocketMessage(doReconnect)
+	}
+
+	// Wait for people to disconnect before letting the pod die
+	done := make(chan struct{})
+	defer close(done)
+	ticker := time.NewTicker(5 * time.Second)
+
+	logging.Get().Info("decomissioning", logging.Metric("decommission"), zap.Int("connected_sessions", len(activeSessions)))
+
+	go func() {
+		for {
+			<-ticker.C
+			if decommissionCheckAllDisconnected(done) {
+				return
+			}
+		}
+	}()
+
+	// TODO Log how long this process took
+
+	// Wait for a signal from the checker that we are all done closing out before returning
+	<-done // When done close the dicker
+	logging.Get().Info("decomissioned")
 }

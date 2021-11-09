@@ -23,8 +23,11 @@ WORKDIR /dist
 # # Copy binary from build to main folder
 RUN cp /build/main .
 
-# # Export necessary port
+# # Export necessary ports
+# Websocket server
 EXPOSE 8080
+# kubectl hooks
+EXPOSE 8081
 
 ENV ELASTIC_APM_SERVICE_NAME=mealswipe-ws \
     ELASTIC_APM_SERVER_URL=https://9bfda03478fb43cf8552a3178e82e463.apm.us-east-1.aws.cloud.es.io:443 \

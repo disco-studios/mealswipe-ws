@@ -12,6 +12,15 @@ import (
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
+var ctlAddr = flag.String("ctlAddr", ":8081", "control http service address")
+
+func handlePreStop(w http.ResponseWriter, r *http.Request) {
+	websockets.Decommission()
+	logging.Get().Core().Sync() // Flush out logs
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text")
+	w.Write([]byte("Done"))
+}
 
 // TODO NULL SAFETY FROM PROTOBUF STUFF
 func main() {
@@ -31,8 +40,28 @@ func main() {
 	// Honestly not sure
 	flag.Parse()
 
+	// Handle kubernetes hooks
+	kubehooks := http.NewServeMux()
+	kubehooks.HandleFunc("/preStop", handlePreStop)
+	kubehookserver := http.Server{
+		Addr:    *ctlAddr,
+		Handler: kubehooks,
+	}
+	go func() {
+		err := kubehookserver.ListenAndServe()
+		logger.Error("kube hook server failed", zap.Error(err))
+		websockets.Decommission()
+		logging.Get().Core().Sync()
+		logger.Fatal("kube hook server failed", zap.Error(err))
+	}()
+
 	// Start the websocket server
 	logger.Info("init")
 	http.HandleFunc("/", websockets.WebsocketHandler)
-	logger.Fatal("http server failed", zap.Error(http.ListenAndServe(*addr, nil)))
+
+	err = http.ListenAndServe(*addr, nil)
+	logger.Error("http server failed", zap.Error(err))
+	websockets.Decommission()
+	logging.Get().Core().Sync()
+	logger.Fatal("http server failed", zap.Error(err))
 }
