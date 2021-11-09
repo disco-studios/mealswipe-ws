@@ -25,6 +25,7 @@ TODO: Ping/pong or read/write deadlines, buffering, TLS (working from client to 
 */
 
 var websocketUpgrader = websocket.Upgrader{} // use default options
+var localSessions types.LocalSessions = *types.InitLocalSessions()
 
 func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	logger := logging.Get()
@@ -38,6 +39,8 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create a user state for our user
 	userState := types.CreateUserState()
+	localSessions.Add(userState)
+	defer localSessions.Remove(userState)
 	defer ensureCleanup(userState)
 	defer close(userState.PubsubChannel)
 	go pubsubPump(userState, userState.PubsubChannel)

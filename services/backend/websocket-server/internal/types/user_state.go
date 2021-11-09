@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -59,4 +60,42 @@ func CreateUserState() *UserState {
 	userState.PubsubChannel = make(chan string, 5)
 
 	return userState
+}
+
+// We want to keep track of all sessions, but we are logging them from many threads
+// Create this to keep track of running sessions without much complexity in implementation
+// TODO Create a metric on this
+type LocalSessions struct {
+	sync.RWMutex
+	internal map[string]*UserState
+}
+
+func InitLocalSessions() *LocalSessions {
+	return &LocalSessions{
+		internal: make(map[string]*UserState),
+	}
+}
+
+func (s *LocalSessions) Add(value *UserState) {
+	s.Lock()
+	s.internal[value.UserId] = value
+	s.Unlock()
+}
+
+func (s *LocalSessions) Remove(value *UserState) {
+	s.Lock()
+	delete(s.internal, value.UserId)
+	s.Unlock()
+}
+
+func (s *LocalSessions) GetAll() []*UserState {
+	s.RLock()
+	v := make([]*UserState, 0, len(s.internal))
+
+	for _, value := range s.internal {
+		v = append(v, value)
+	}
+	s.RUnlock()
+
+	return v
 }
