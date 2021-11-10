@@ -84,7 +84,7 @@ kind: Deployment
 metadata:
   name: mealswipe-ws
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: ms-ws-app
@@ -103,6 +103,19 @@ spec:
               httpGet:
                 path: preStop
                 port: 8081
+          resources:
+            # TODO Optimize these
+            requests:
+              memory: "1900Mi"
+              cpu: "450m"
+            limits:
+              memory: "2000Mi"
+              cpu: "500m"
+      tolerations:
+      - key: "stateless"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
       terminationGracePeriodSeconds: 60
 
 ---
@@ -118,6 +131,40 @@ spec:
   ports:
   - port: 8080
 
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mealswipe-ws
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mealswipe-ws
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+status:
+  observedGeneration: 1
+  lastScaleTime: 2006-01-02T15:04:05Z07:00
+  currentReplicas: 1
+  desiredReplicas: 1
+  currentMetrics:
+  - type: Resource
+    resource:
+      name: cpu
+      current:
+        averageUtilization: 0
+        averageValue: 0
+  conditions:
+  - status: Unknown
+    type: <some-type>
 ---
   
 ######################################################

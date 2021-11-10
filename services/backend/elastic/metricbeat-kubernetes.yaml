@@ -90,11 +90,11 @@ data:
       reload.enabled: true
 
     # To enable hints based autodiscover uncomment this:
-    #metricbeat.autodiscover:
-    #  providers:
-    #    - type: kubernetes
-    #      host: ${NODE_NAME}
-    #      hints.enabled: true
+    metricbeat.autodiscover:
+     providers:
+       - type: kubernetes
+         host: ${NODE_NAME}
+         hints.enabled: true
 
     processors:
       - add_cloud_metadata:
@@ -204,6 +204,11 @@ spec:
       terminationGracePeriodSeconds: 30
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+      - key: "stateless"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
       containers:
       - name: metricbeat
         image: docker.elastic.co/beats/metricbeat:7.6.2
@@ -467,6 +472,10 @@ metadata:
   labels:
     k8s-app: metricbeat
 rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
 - apiGroups: [""]
   resources:
   - nodes
@@ -488,6 +497,7 @@ rules:
   - ""
   resources:
   - nodes/stats
+  - nodes/metrics
   verbs:
   - get
 ---

@@ -26,6 +26,7 @@ spec:
     resources:
       limits:
         cpu: "0.1"
+        memory: "2000Mi"
     volumeMounts:
     - mountPath: /redis-master-data
       name: data
