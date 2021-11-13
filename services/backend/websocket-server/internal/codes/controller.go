@@ -34,10 +34,18 @@ func Reserve(ctx context.Context, sessionId string) (code string, err error) {
 		code = encodeRaw(generateRandomRaw())
 		err = attemptReserveCode(ctx, sessionId, code)
 		if err == nil { // TODO Handle errors other than the one we made
-			logging.ApmCtx(ctx).Info("reserved code", logging.Metric("code_collision"), zap.Bool("collision", false), zap.Error(err))
+			logging.ApmCtx(ctx).Info(fmt.Sprintf("reserved code %s for %s", code, sessionId),
+				logging.Metric("code_collision"),
+				zap.Bool("collision", false),
+				zap.Error(err),
+			)
 			return
 		} else {
-			logging.ApmCtx(ctx).Info("failed to reserve code", logging.Metric("code_collision"), zap.Bool("collision", true), zap.Error(err))
+			logging.ApmCtx(ctx).Info(fmt.Sprintf("failed to reserve code for %s", sessionId),
+				logging.Metric("code_collision"),
+				zap.Bool("collision", true),
+				zap.Error(err),
+			)
 		}
 	}
 	err = fmt.Errorf("ran out of attempts: %w", err)

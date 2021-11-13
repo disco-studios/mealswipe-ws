@@ -42,7 +42,10 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, startMessa
 
 	radiusValid, err := common.IsRadiusValid(startMessage.Radius)
 	if err != nil {
-		logging.ApmCtx(ctx).Info("invalid radius given", logging.Metric("bad_radius"), zap.Int32("radius", startMessage.Radius))
+		logging.ApmCtx(ctx).Info(fmt.Sprintf("invalid radius given for %s", userState.UserId),
+			logging.Metric("bad_radius"),
+			zap.Int32("radius", startMessage.Radius),
+		)
 		err = fmt.Errorf("validate radius: %w", err)
 		return
 	}
@@ -55,7 +58,11 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, startMessa
 
 	latLonValid := common.LatLonWithinUnitedStates(startMessage.Lat, startMessage.Lng)
 	if !latLonValid {
-		logging.ApmCtx(ctx).Info("invalid lat lon given", logging.Metric("bad_lat_lng"), zap.Float64("lat", startMessage.Lat), zap.Float64("lng", startMessage.Lng))
+		logging.ApmCtx(ctx).Info(fmt.Sprintf("invalid lat lon given for %s", userState.UserId),
+			logging.Metric("bad_lat_lng"),
+			zap.Float64("lat", startMessage.Lat),
+			zap.Float64("lng", startMessage.Lng),
+		)
 		return &mealswipe.MessageValidationError{
 			MessageType:   "start",
 			Clarification: "invalid lat lng",

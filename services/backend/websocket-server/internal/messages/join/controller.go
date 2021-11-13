@@ -60,7 +60,10 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessag
 
 	// Validate that code is valid format
 	if !common.IsCodeValid(joinMessage.Code) {
-		logging.ApmCtx(ctx).Info("invalid code given", logging.Metric("bad_code"), zap.String("code", joinMessage.Code))
+		logging.ApmCtx(ctx).Info(fmt.Sprintf("invalid code given for %s", userState.UserId),
+			logging.Metric("bad_code"),
+			zap.String("code", joinMessage.Code),
+		)
 		return &mealswipe.MessageValidationError{
 			MessageType:   "join",
 			Clarification: "invalid code format",
@@ -73,7 +76,10 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessag
 		err = fmt.Errorf("validate nickname: %w", err)
 		return err
 	} else if !nicknameValid {
-		logging.ApmCtx(ctx).Info("invalid nickname given", logging.Metric("bad_nickname"), zap.String("nickname", joinMessage.Nickname))
+		logging.ApmCtx(ctx).Info(fmt.Sprintf("invalid nickname given for %s", userState.UserId),
+			logging.Metric("bad_nickname"),
+			zap.String("nickname", joinMessage.Nickname),
+		)
 		return &mealswipe.MessageValidationError{
 			MessageType:   "join",
 			Clarification: "invalid nickname",

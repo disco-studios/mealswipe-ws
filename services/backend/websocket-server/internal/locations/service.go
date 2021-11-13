@@ -322,8 +322,7 @@ func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenu
 			seenNames[venue.Name] = venue
 			uniqueNames = append(uniqueNames, venue)
 		} else {
-			logging.ApmCtx(ctx).Info(
-				"skipping location because it has already been seen",
+			logging.ApmCtx(ctx).Info(fmt.Sprintf("skipping location '%s' (%s) because it has already been seen", venue.Name, venue.Id),
 				logging.LocName(venue.Name),
 				logging.LocId(venue.Name),
 				zap.String("seen_name", seenVenue.Name),
@@ -333,7 +332,7 @@ func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenu
 		}
 	}
 
-	logging.ApmCtx(ctx).Info("unique locations sorted out", logging.Metric("loc_uniqueness"), zap.Int("unique", len(uniqueNames)), zap.Int("total", len(venues)))
+	logging.ApmCtx(ctx).Info(fmt.Sprintf("found %d unique locations out of %d", len(uniqueNames), len(venues)), logging.Metric("loc_uniqueness"), zap.Int("unique", len(uniqueNames)), zap.Int("total", len(venues)))
 
 	// Check our database for information about each location
 	pipe := msredis.Pipeline()
@@ -362,7 +361,15 @@ func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenu
 	}
 
 	// We now have a good set of hits and misses! Shuffle them out of distance sorted
-	logging.ApmCtx(ctx).Info("locations sorted into hit and miss", logging.Metric("optimize_hit_miss"), zap.Int("hits", len(hit)), zap.Int("misses", len(miss)), zap.Int("total", len(miss)+len(hit)))
+	hitLen := len(hit)
+	missLen := len(miss)
+	totalLen := hitLen + missLen
+	logging.ApmCtx(ctx).Info(fmt.Sprintf("found %d hits and %d misses out of %d total", hitLen, missLen, totalLen),
+		logging.Metric("optimize_hit_miss"),
+		zap.Int("hits", hitLen),
+		zap.Int("misses", missLen),
+		zap.Int("total", totalLen),
+	)
 	shuffleVenues(hit)
 	shuffleVenues(miss)
 
@@ -375,11 +382,21 @@ func findOptimalVenues(ctx context.Context, venues []types.Venue) (resultingVenu
 		preferHit = (len(hit) > 0) && preferHit
 
 		if preferHit {
-			logging.ApmCtx(ctx).Info("location placed into index", logging.Metric("loc_index"), zap.Int("index", i), zap.Bool("cache_hit", true), logging.LocId(hit[0].Id)) // TODO Session id here would be good
+			logging.ApmCtx(ctx).Info(fmt.Sprintf("location index %d hit", i),
+				logging.Metric("loc_index"),
+				zap.Int("index", i),
+				zap.Bool("cache_hit", true),
+				logging.LocId(hit[0].Id),
+			) // TODO Session id here would be good
 			resultingVenues = append(resultingVenues, hit[0])
 			hit = hit[1:]
 		} else {
-			logging.ApmCtx(ctx).Info("location placed into index", logging.Metric("loc_index"), zap.Int("index", i), zap.Bool("cache_hit", false), logging.LocId(miss[0].Id))
+			logging.ApmCtx(ctx).Info(fmt.Sprintf("location index %d miss", i),
+				logging.Metric("loc_index"),
+				zap.Int("index", i),
+				zap.Bool("cache_hit", false),
+				logging.LocId(miss[0].Id),
+			)
 			resultingVenues = append(resultingVenues, miss[0])
 			miss = miss[1:]
 		}

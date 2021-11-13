@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
@@ -78,7 +79,7 @@ func writePump(connection *websocket.Conn, messageQueue <-chan *mealswipepb.Webs
 			logger.Error("write pump failed to write message out", zap.Error(err))
 			return
 		}
-		logger.Info("out message length", logging.Metric("out_message_length"), zap.Int("length", outLength))
+		logger.Info(fmt.Sprintf("out message length %d", outLength), logging.Metric("out_message_length"), zap.Int("length", outLength))
 
 		if err := w.Close(); err != nil {
 			logger.Error("write pump failed on close", zap.Error(err))
@@ -98,7 +99,7 @@ func readPump(connection *websocket.Conn, userState *types.UserState) {
 			return
 		}
 		if rawMessageType != websocket.BinaryMessage {
-			logger.Info("user provided non-binary message", logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+			logger.Info(fmt.Sprintf("user %s provided non-binary message", userState.UserId), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
 			return
 		}
 
@@ -114,7 +115,7 @@ func readPump(connection *websocket.Conn, userState *types.UserState) {
 			logger.Error("read pump failed when reading message", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
 			return
 		}
-		logger.Info("message length", logging.Metric("in_message_length"), zap.Int64("length", readLength), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+		logger.Info(fmt.Sprintf("in message length %d", readLength), logging.Metric("in_message_length"), zap.Int64("length", readLength), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
 		messageBytes := readBuffer.Bytes()
 
 		// Convert to generic message

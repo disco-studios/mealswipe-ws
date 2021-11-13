@@ -22,7 +22,7 @@ func HandleMessage(ctx context.Context, userState *types.UserState, voteMessage 
 		return
 	}
 
-	logging.ApmCtx(ctx).Info("user_vote",
+	logging.ApmCtx(ctx).Info(fmt.Sprintf("user %s voted %t for index %d", userState.UserId, voteMessage.Vote, voteMessage.Index),
 		logging.Metric("swipe_dir"),
 		zap.Bool("right", voteMessage.Vote),
 		logging.SessionId(userState.JoinedSessionId),

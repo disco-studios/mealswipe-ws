@@ -35,7 +35,11 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 		}
 	}
 
-	logging.ApmCtx(ctx).Info("location loaded", logging.Metric("loc_load"), zap.Bool("cache_hit", !miss), logging.LocId(loc_id))
+	logging.ApmCtx(ctx).Info(fmt.Sprintf("location %s loaded", loc_id),
+		logging.Metric("loc_load"),
+		zap.Bool("cache_hit", !miss),
+		logging.LocId(loc_id),
+	)
 
 	loc, err = fromStore(locationStore, index)
 	if err != nil {
@@ -56,7 +60,11 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 	}
 
 	if len(locId) == 0 {
-		logging.ApmCtx(ctx).Info("ran out of locations", logging.Metric("out_of_locations"), logging.SessionId(sessionId), zap.Int("index", int(index)))
+		logging.ApmCtx(ctx).Info(fmt.Sprintf("ran out of locations for %s", sessionId),
+			logging.Metric("out_of_locations"),
+			logging.SessionId(sessionId),
+			zap.Int("index", int(index)),
+		)
 		return &mealswipepb.Location{
 			OutOfLocations: true,
 		}, nil

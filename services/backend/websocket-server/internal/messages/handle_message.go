@@ -25,7 +25,10 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "create"))
+		logger.Info(fmt.Sprintf("create message received from %s", userState.UserId),
+			logging.Metric("message_received"),
+			zap.String("type", "create"),
+		)
 		err = create.HandleMessage(ctx, userState, genericMessage.GetCreateMessage())
 		if err != nil {
 			err = fmt.Errorf("handle create message: %w", err)
@@ -36,7 +39,10 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "join"))
+		logger.Info(fmt.Sprintf("join message received from %s", userState.UserId),
+			logging.Metric("message_received"),
+			zap.String("type", "join"),
+		)
 		err = join.HandleMessage(ctx, userState, genericMessage.GetJoinMessage())
 		if err != nil {
 			err = fmt.Errorf("handle join message: %w", err)
@@ -47,7 +53,10 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "start"))
+		logger.Info(fmt.Sprintf("start message received from %s", userState.UserId),
+			logging.Metric("message_received"),
+			zap.String("type", "start"),
+		)
 		err = start.HandleMessage(ctx, userState, genericMessage.GetStartMessage())
 		if err != nil {
 			err = fmt.Errorf("handle start message: %w", err)
@@ -58,7 +67,10 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "vote"))
+		logger.Info(fmt.Sprintf("vote message received from %s", userState.UserId),
+			logging.Metric("message_received"),
+			zap.String("type", "vote"),
+		)
 		err = vote.HandleMessage(ctx, userState, genericMessage.GetVoteMessage())
 		if err != nil {
 			err = fmt.Errorf("handle vote message: %w", err)
@@ -69,7 +81,10 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info("message received", logging.Metric("message_received"), zap.String("type", "rejoin"))
+		logger.Info(fmt.Sprintf("rejoin message received from %s", userState.UserId),
+			logging.Metric("message_received"),
+			zap.String("type", "rejoin"),
+		)
 		err = rejoin.HandleMessage(ctx, userState, genericMessage.GetRejoinMessage())
 		if err != nil {
 			err = fmt.Errorf("handle rejoin message: %w", err)

@@ -1,6 +1,7 @@
 package websockets
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -45,7 +46,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	defer ensureCleanup(userState)
 	defer close(userState.PubsubChannel)
 	go pubsubPump(userState, userState.PubsubChannel)
-	logger.Info("new user connected", logging.UserId(userState.UserId))
+	logger.Info(fmt.Sprintf("new user %s connected", userState.UserId), logging.UserId(userState.UserId))
 
 	// Create a write channel to send messages to our websocket
 	writeChannel := make(chan *mealswipepb.WebsocketResponse, 5)
