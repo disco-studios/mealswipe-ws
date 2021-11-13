@@ -36,6 +36,8 @@ tester:
 	cd ./websocket-server/tools && go run tester.go
 ecr-register:
 	(Get-ECRLoginCommand).Password | docker login --username AWS --password-stdin 850351896280.dkr.ecr.us-east-1.amazonaws.com
+mac-login:
+	aws ecr get-login-password | docker login --username AWS --password-stdin 850351896280.dkr.ecr.us-east-1.amazonaws.com
 publish:
 	docker tag mealswipe 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
 	docker push 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
