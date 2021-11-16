@@ -27,7 +27,7 @@ func main() {
 	loggerConfig := zap.NewProductionConfig()
 	loggerConfig.EncoderConfig.TimeKey = "@timestamp"
 	loggerConfig.EncoderConfig.MessageKey = "message"
-	logger, err := loggerConfig.Build(zap.Fields(zap.String("app", "ms-ws")))
+	logger, err := loggerConfig.Build(zap.Fields(zap.String("app", "ms-ws"), zap.Namespace("mealswipe")))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -82,9 +82,9 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mealswipe-ws
+  name: ms-ws
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: ms-ws-app
@@ -94,7 +94,7 @@ spec:
         app: ms-ws-app
     spec:
       containers:
-        - name: mealswipe-ws
+        - name: ms-ws
           image: 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe:latest
           ports:
             - containerPort: 8080
@@ -123,7 +123,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mealswipe-websocket-app-service
+  name: ms-ws
 spec:
   type: NodePort
   selector:
@@ -131,40 +131,6 @@ spec:
   ports:
   - port: 8080
 
----
-apiVersion: autoscaling/v2beta2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: mealswipe-ws
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: mealswipe-ws
-  minReplicas: 3
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 60
-status:
-  observedGeneration: 1
-  lastScaleTime: 2006-01-02T15:04:05Z07:00
-  currentReplicas: 1
-  desiredReplicas: 1
-  currentMetrics:
-  - type: Resource
-    resource:
-      name: cpu
-      current:
-        averageUtilization: 0
-        averageValue: 0
-  conditions:
-  - status: Unknown
-    type: <some-type>
 ---
   
 ######################################################
@@ -191,6 +157,6 @@ spec:
             pathType: Exact
             backend:
               service:
-                name: mealswipe-websocket-app-service
+                name: ms-ws
                 port:
                   number: 8080

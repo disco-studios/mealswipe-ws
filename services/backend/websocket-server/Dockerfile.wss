@@ -1,4 +1,7 @@
-FROM golang:alpine
+#####################################################################
+# Builder, download deps and prepare for build
+##################################################################### 
+FROM golang:alpine AS builder
 
 # Set necessary environmet variables needed for our image
 ENV GO111MODULE=on \
@@ -10,9 +13,21 @@ ENV GO111MODULE=on \
 WORKDIR /build
 
 # Copy and download dependency using go mod
-COPY . .
-# TODO Should probably build protocolbuffer here
+COPY ./go.mod .
+COPY ./go.sum .
 RUN go mod download
+
+#####################################################################
+# Build, compile our image
+# Separate from builder to save time, don't need to redownload deps
+##################################################################### 
+FROM builder AS build
+
+# Move to working directory /build
+WORKDIR /build
+
+# Move the rest over
+COPY . .
 
 # # Build the application
 RUN go build -o main ./cmd/websocket-server
@@ -23,15 +38,22 @@ WORKDIR /dist
 # # Copy binary from build to main folder
 RUN cp /build/main .
 
-# # Export necessary ports
+#####################################################################
+# Prod, just our image and env vars
+# Minimizes our prod image size
+##################################################################### 
+FROM alpine:latest as prod
+
 # Websocket server
 EXPOSE 8080
 # kubectl hooks
 EXPOSE 8081
 
+# elastic apm
 ENV ELASTIC_APM_SERVICE_NAME=mealswipe-ws \
     ELASTIC_APM_SERVER_URL=https://9bfda03478fb43cf8552a3178e82e463.apm.us-east-1.aws.cloud.es.io:443 \
     ELASTIC_APM_SECRET_TOKEN=2nmMiRiidEavU8VXxJ
 
-# # Command to run when starting the container
-CMD ["/dist/main"]
+WORKDIR /root/
+COPY --from=build /dist/main ./
+ENTRYPOINT ["./main"]

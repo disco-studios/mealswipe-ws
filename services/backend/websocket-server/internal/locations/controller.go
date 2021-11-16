@@ -35,10 +35,10 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 		}
 	}
 
-	logging.ApmCtx(ctx).Info(fmt.Sprintf("location %s loaded", loc_id),
-		logging.Metric("loc_load"),
-		zap.Bool("cache_hit", !miss),
+	logging.MetricCtx(ctx, "loc_load").Info(
+		fmt.Sprintf("location %s loaded", loc_id),
 		logging.LocId(loc_id),
+		zap.Bool("cache_hit", !miss),
 	)
 
 	loc, err = fromStore(locationStore, index)
@@ -60,9 +60,8 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 	}
 
 	if len(locId) == 0 {
-		logging.ApmCtx(ctx).Info(fmt.Sprintf("ran out of locations for %s", sessionId),
-			logging.Metric("out_of_locations"),
-			logging.SessionId(sessionId),
+		logging.MetricCtx(ctx, "out_of_locations").Info(
+			fmt.Sprintf("ran out of locations"),
 			zap.Int("index", int(index)),
 		)
 		return &mealswipepb.Location{
@@ -79,7 +78,7 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 	distInt, err := strconv.ParseInt(distance, 10, 32)
 	if err != nil {
 		err = fmt.Errorf("parse int: %v", err)
-		logging.ApmCtx(ctx).Error("failed to convert distance to int", logging.SessionId(sessionId), logging.LocId(locId), zap.String("distance", distance))
+		logging.Ctx(ctx).Error("failed to convert distance to int", logging.LocId(locId), zap.String("distance", distance))
 	}
 	loc.Distance = int32(distInt)
 

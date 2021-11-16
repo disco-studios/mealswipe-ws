@@ -23,6 +23,8 @@ func HandleMessage(ctx context.Context, userState *types.UserState, createMessag
 		return
 	}
 
+	ctx = userState.TagContext(ctx)
+
 	// Join the user into the new session
 	userState.Nickname = createMessage.Nickname
 	err = sessions.JoinById(ctx, userState, sessionId, code)
@@ -59,8 +61,8 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, createMess
 		err = fmt.Errorf("validate nickname: %w", err)
 		return err
 	} else if !nicknameValid {
-		logging.ApmCtx(ctx).Info(fmt.Sprintf("invalid nickname given for %s", userState.UserId),
-			logging.Metric("bad_nickname"),
+		logging.MetricCtx(ctx, "bad_nickname").Info(
+			fmt.Sprintf("gave bad nickname %s", createMessage.Nickname),
 			zap.String("nickname", createMessage.Nickname),
 		)
 		return &mealswipe.MessageValidationError{

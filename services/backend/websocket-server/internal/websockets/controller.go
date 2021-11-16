@@ -46,7 +46,7 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	defer ensureCleanup(userState)
 	defer close(userState.PubsubChannel)
 	go pubsubPump(userState, userState.PubsubChannel)
-	logger.Info(fmt.Sprintf("new user %s connected", userState.UserId), logging.UserId(userState.UserId))
+	logger.Info(fmt.Sprintf("new user %s connected", userState.UserId))
 
 	// Create a write channel to send messages to our websocket
 	writeChannel := make(chan *mealswipepb.WebsocketResponse, 5)
@@ -54,10 +54,10 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	userState.WriteChannel = writeChannel
 
 	// Start a write pump to watch our channel and send messages when we need to
-	go writePump(c, writeChannel)
+	go writePump(userState, c, writeChannel)
 
 	// Call the read pump to handle incoming messages
-	readPump(c, userState)
+	readPump(userState, c)
 }
 
 func decommissionCheckAllDisconnected(t time.Time) bool {
@@ -66,7 +66,11 @@ func decommissionCheckAllDisconnected(t time.Time) bool {
 		// Tell decomission it can return
 		return true
 	} else {
-		logging.Get().Info("decomission waiting", logging.Metric("decommission_wait"), zap.Int("connected_sessions", connected), zap.Time("decomission_wait_time", t)) // TODO Remove
+		logging.Metric("decommission_wait").Info(
+			"decomission waiting",
+			zap.Int("connected_sessions", connected),
+			zap.Time("decomission_wait_time", t),
+		)
 	}
 	return false
 }
@@ -88,7 +92,10 @@ func Decommission() {
 	defer close(done)
 	ticker := time.NewTicker(5 * time.Second)
 
-	logging.Get().Info("decomissioning", logging.Metric("decommission"), zap.Int("connected_sessions", len(activeSessions)))
+	logging.Metric("decommission").Info(
+		"decomissioning",
+		zap.Int("connected_sessions", len(activeSessions)),
+	)
 
 	go func() {
 		for {

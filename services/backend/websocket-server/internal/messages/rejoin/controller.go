@@ -42,7 +42,10 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, rejoinMess
 	}
 
 	if rejoinMessage.UserId == "" {
-		logging.ApmCtx(ctx).Info("rejoin: invalid userid given", logging.Metric("bad_user_id"), logging.UserId(rejoinMessage.UserId))
+		logging.MetricCtx(ctx, "bad_user_id").Info(
+			"rejoin: invalid userid given",
+			logging.UserId(rejoinMessage.UserId),
+		)
 		return &mealswipe.MessageValidationError{
 			MessageType:   "rejoin",
 			Clarification: "invalid userid format",
@@ -50,7 +53,10 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, rejoinMess
 	}
 
 	if rejoinMessage.SessionId == "" {
-		logging.ApmCtx(ctx).Info("rejoin: invalid sessionid given", logging.Metric("bad_session_id"), logging.SessionId(rejoinMessage.SessionId))
+		logging.MetricCtx(ctx, "bad_session_id").Info(
+			"rejoin: invalid sessionid given",
+			logging.SessionId(rejoinMessage.SessionId),
+		)
 		return &mealswipe.MessageValidationError{
 			MessageType:   "rejoin",
 			Clarification: "invalid sessionid format",

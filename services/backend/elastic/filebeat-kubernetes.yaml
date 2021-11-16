@@ -96,7 +96,7 @@ data:
     #               logs_path: "/var/log/containers/"
     - type: container
       paths:
-      - /var/log/containers/mealswipe-ws-*.log
+      - /var/log/containers/ms-ws-*.log
       json.keys_under_root: true
       json.add_error_key: true
       processors:

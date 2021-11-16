@@ -25,9 +25,11 @@ func ensureCleanup(userState *types.UserState) {
 }
 
 func pubsubPump(userState *types.UserState, messageQueue <-chan string) {
-	logger := logging.Get()
 	for message := range messageQueue {
-		logger.Debug("redis message received", logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId), zap.String("message", message))
+		ctx := userState.TagContext(context.Background())
+		logger := logging.Ctx(ctx)
+
+		logger.Debug("redis message received", zap.String("message", message))
 
 		websocketResponse := &mealswipepb.WebsocketResponse{}
 		err := json.Unmarshal([]byte(message), websocketResponse) // We use the above as JSON, because we can, and it is easier to stringify
@@ -49,19 +51,21 @@ func pubsubPump(userState *types.UserState, messageQueue <-chan string) {
 				for i := 0; i < 2; i++ {
 					err := sessions.SendNextLocToUser(context.TODO(), userState)
 					if err != nil {
-						logger.Error("pumpsump pump failed to send next location to user", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+						logger.Error("pumpsump pump failed to send next location to user", zap.Error(err))
 					}
 				}
 			}
 		}
 	}
-	logger.Debug("pubsub pump cleaned up", logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+	logging.Get().Debug("pubsub pump cleaned up")
 }
 
-func writePump(connection *websocket.Conn, messageQueue <-chan *mealswipepb.WebsocketResponse) {
-	logger := logging.Get()
+func writePump(userState *types.UserState, connection *websocket.Conn, messageQueue <-chan *mealswipepb.WebsocketResponse) {
 	// Go through messages in the write pump and write them out
 	for message := range messageQueue {
+		ctx := userState.TagContext(context.Background())
+		logger := logging.Ctx(ctx)
+
 		w, err := connection.NextWriter(websocket.BinaryMessage) // TODO Does this need to happen in here? Feel like this can go out of loop
 		if err != nil {
 			logger.Error("write pump failed to open writer", zap.Error(err))
@@ -79,27 +83,32 @@ func writePump(connection *websocket.Conn, messageQueue <-chan *mealswipepb.Webs
 			logger.Error("write pump failed to write message out", zap.Error(err))
 			return
 		}
-		logger.Info(fmt.Sprintf("out message length %d", outLength), logging.Metric("out_message_length"), zap.Int("length", outLength))
+		logging.MetricCtx(ctx, "out_message_length").Debug(
+			fmt.Sprintf("out message length %d", outLength),
+			zap.Int("length", outLength),
+		)
 
 		if err := w.Close(); err != nil {
 			logger.Error("write pump failed on close", zap.Error(err))
 			return
 		}
 	}
-	logger.Debug("write pump cleaned up")
+	logging.Get().Debug("write pump cleaned up")
 }
 
-func readPump(connection *websocket.Conn, userState *types.UserState) {
-	logger := logging.Get()
+func readPump(userState *types.UserState, connection *websocket.Conn) {
 	for {
+		ctx := userState.TagContext(context.Background())
+		logger := logging.Ctx(ctx)
+
 		// Establish read connection
 		rawMessageType, inStream, err := connection.NextReader()
 		if err != nil {
-			logger.Error("read pump failed to open reader", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+			logger.Error("read pump failed to open reader", zap.Error(err))
 			return
 		}
 		if rawMessageType != websocket.BinaryMessage {
-			logger.Info(fmt.Sprintf("user %s provided non-binary message", userState.UserId), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+			logger.Info(fmt.Sprintf("user %s provided non-binary message", userState.UserId))
 			return
 		}
 
@@ -112,34 +121,40 @@ func readPump(connection *websocket.Conn, userState *types.UserState) {
 		readBuffer := new(bytes.Buffer)
 		readLength, readErr := readBuffer.ReadFrom(inStream)
 		if readErr != nil {
-			logger.Error("read pump failed when reading message", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+			logger.Error("read pump failed when reading message", zap.Error(err))
 			return
 		}
-		logger.Info(fmt.Sprintf("in message length %d", readLength), logging.Metric("in_message_length"), zap.Int64("length", readLength), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+		logging.MetricCtx(ctx, "in_message_length").Debug(
+			fmt.Sprintf("in message length %d", readLength),
+			zap.Int64("length", readLength),
+		)
 		messageBytes := readBuffer.Bytes()
 
 		// Convert to generic message
 		genericMessage := &mealswipepb.WebsocketMessage{}
 		if err := proto.Unmarshal(messageBytes, genericMessage); err != nil {
-			logger.Error("read pump failed to unmarshal protobuf", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+			logger.Error("read pump failed to unmarshal protobuf", zap.Error(err))
 			return
 		}
 
-		ctx := context.Background()
 		// tx := apm.DefaultTracer.StartTransaction("HANDLE create", "request")
 		// defer tx.End()
 		// ctx = apm.ContextWithTransaction(ctx, tx)
 
 		err = messages.ValidateMessage(userState, genericMessage)
 		if err != nil {
-			logging.ApmCtx(ctx).Info("failed to validate message", logging.Metric("in_message_length"), zap.Any("raw", genericMessage), zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId))
+			logging.MetricCtx(ctx, "in_message_length").Info(
+				"failed to validate message",
+				zap.Any("raw", genericMessage),
+				zap.Error(err),
+			)
 			return
 		}
 
 		err = messages.HandleMessage(ctx, userState, genericMessage)
 		if err != nil {
 			// TODO Don't always die when we have an error, just sometimes
-			logging.ApmCtx(ctx).Error("message handler encountered error", zap.Error(err), logging.UserId(userState.UserId), logging.SessionId(userState.JoinedSessionId), zap.Any("raw", genericMessage))
+			logging.Ctx(ctx).Error("message handler encountered error", zap.Error(err), zap.Any("raw", genericMessage))
 			return
 		}
 

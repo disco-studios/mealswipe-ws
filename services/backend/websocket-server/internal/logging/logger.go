@@ -22,10 +22,48 @@ func Get() *zap.Logger {
 	return logger
 }
 
-func ApmCtx(ctx context.Context) *zap.Logger {
+func metric(logga *zap.Logger, metric_str string) *zap.Logger {
+	return logga.With(zap.Namespace("metric"), zap.String("type", metric_str), zap.Namespace(metric_str))
+}
+
+func Metric(metric_str string) *zap.Logger {
+	return metric(logger, metric_str)
+}
+
+func MetricCtx(ctxt context.Context, metric_str string) *zap.Logger {
+	return metric(ctx(logger, ctxt), metric_str)
+}
+
+func ctx(logga *zap.Logger, ctx context.Context) *zap.Logger {
+	if val, ok := ctx.Value("user.id").(string); ok {
+		logga = logga.With(
+			zap.String("user.id", val),
+		)
+	}
+
+	// if val, ok := ctx.Value("host.state").(string); ok {
+	// 	logga = logga.With(
+	// 		zap.String("host.state", val),
+	// 	)
+	// }
+
+	if val, ok := ctx.Value("session.id").(string); ok {
+		logga = logga.With(
+			zap.String("session.id", val),
+		)
+	}
+
+	return ApmCtx(ctx, logga)
+}
+
+func Ctx(ctxt context.Context) *zap.Logger {
+	return ctx(logger, ctxt)
+}
+
+func ApmCtx(ctx context.Context, logga *zap.Logger) *zap.Logger {
 	traceContextFields := apmzap.TraceContext(ctx)
 
-	return logger.With(traceContextFields...)
+	return logga.With(traceContextFields...)
 }
 
 func SessionId(sessionId string) zapcore.Field {
@@ -42,10 +80,6 @@ func LocId(locId string) zapcore.Field {
 
 func LocName(locId string) zapcore.Field {
 	return zap.String("loc_name", locId)
-}
-
-func Metric(metic string) zapcore.Field {
-	return zap.String("metric", metic)
 }
 
 func Code(code string) zapcore.Field {

@@ -19,14 +19,14 @@ import (
 
 // TODO NULL SAFETY FROM PROTOBUF STUFF
 func HandleMessage(ctx context.Context, userState *types.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
-	logger := logging.Get()
+	logger := logging.MetricCtx(ctx, "message_received")
 	if common.HasCreateMessage(genericMessage) {
 		tx := apm.DefaultTracer.StartTransaction("HANDLE create", "request")
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info(fmt.Sprintf("create message received from %s", userState.UserId),
-			logging.Metric("message_received"),
+		logger.Info(
+			fmt.Sprintf("create message received from %s", userState.UserId),
 			zap.String("type", "create"),
 		)
 		err = create.HandleMessage(ctx, userState, genericMessage.GetCreateMessage())
@@ -39,8 +39,8 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info(fmt.Sprintf("join message received from %s", userState.UserId),
-			logging.Metric("message_received"),
+		logger.Info(
+			"join message received",
 			zap.String("type", "join"),
 		)
 		err = join.HandleMessage(ctx, userState, genericMessage.GetJoinMessage())
@@ -53,8 +53,8 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info(fmt.Sprintf("start message received from %s", userState.UserId),
-			logging.Metric("message_received"),
+		logger.Info(
+			"start message received",
 			zap.String("type", "start"),
 		)
 		err = start.HandleMessage(ctx, userState, genericMessage.GetStartMessage())
@@ -67,8 +67,8 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info(fmt.Sprintf("vote message received from %s", userState.UserId),
-			logging.Metric("message_received"),
+		logger.Info(
+			"vote message received",
 			zap.String("type", "vote"),
 		)
 		err = vote.HandleMessage(ctx, userState, genericMessage.GetVoteMessage())
@@ -81,8 +81,8 @@ func HandleMessage(ctx context.Context, userState *types.UserState, genericMessa
 		defer tx.End()
 		ctx = apm.ContextWithTransaction(ctx, tx)
 
-		logger.Info(fmt.Sprintf("rejoin message received from %s", userState.UserId),
-			logging.Metric("message_received"),
+		logger.Info(
+			"rejoin message received",
 			zap.String("type", "rejoin"),
 		)
 		err = rejoin.HandleMessage(ctx, userState, genericMessage.GetRejoinMessage())

@@ -10,19 +10,7 @@ deploy:
 	cd ./websocket-server/ && docker build -f Dockerfile.wss -t mealswipe .
 	docker tag mealswipe 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
 	docker push 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
-	kubectl rollout restart deployment mealswipe-ws
-deploy-stats:
-	protoc -I="./../" --go_out="./websocket-server/protobuf/" "./../protobuf/mealswipe/websocket.proto"
-	cd ./websocket-server/ && docker build -f Dockerfile.stats -t mealswipe_stats .
-	docker tag mealswipe_stats 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe-stats
-	docker push 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe-stats
-	kubectl rollout restart deployment mealswipe-stats
-deploy-admin:
-	protoc -I="./../" --go_out="./websocket-server/protobuf/" "./../protobuf/mealswipe/websocket.proto"
-	cd ./websocket-server/ && docker build -f Dockerfile.admin -t mealswipe_admin .
-	docker tag mealswipe_admin 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe-admin
-	docker push 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe-admin
-	kubectl rollout restart deployment mealswipe-admin
+	kubectl rollout restart deployment ms-ws
 stop:
 	docker kill mealswipe
 	docker rm mealswipe

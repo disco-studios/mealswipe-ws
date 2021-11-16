@@ -53,6 +53,17 @@ func (userState UserState) PubsubWebsocketResponse(websocketResponse *mealswipep
 	return
 }
 
+func (userState UserState) TagContext(ctx context.Context) (newCtx context.Context) {
+	newCtx = context.WithValue(ctx, "host.state", userState.HostState)
+	if userState.UserId != "" {
+		newCtx = context.WithValue(newCtx, "user.id", userState.UserId)
+	}
+	if userState.JoinedSessionId != "" {
+		newCtx = context.WithValue(newCtx, "session.id", userState.JoinedSessionId)
+	}
+	return newCtx
+}
+
 func CreateUserState() *UserState {
 	userState := &UserState{}
 	userState.HostState = mealswipe.HostState_UNIDENTIFIED

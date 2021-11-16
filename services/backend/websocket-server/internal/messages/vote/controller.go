@@ -22,12 +22,10 @@ func HandleMessage(ctx context.Context, userState *types.UserState, voteMessage 
 		return
 	}
 
-	logging.ApmCtx(ctx).Info(fmt.Sprintf("user %s voted %t for index %d", userState.UserId, voteMessage.Vote, voteMessage.Index),
-		logging.Metric("swipe_dir"),
+	logging.MetricCtx(ctx, "swipe_dir").Info(
+		fmt.Sprintf("voted %t for index %d", voteMessage.Vote, voteMessage.Index),
 		zap.Bool("right", voteMessage.Vote),
-		logging.SessionId(userState.JoinedSessionId),
 		zap.Int32("index", voteMessage.Index),
-		logging.UserId(userState.UserId),
 	)
 	go sessions.CheckWin(ctx, userState) // TODO This could throw an error, figure out how to handle
 

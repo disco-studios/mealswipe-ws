@@ -42,8 +42,8 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, startMessa
 
 	radiusValid, err := common.IsRadiusValid(startMessage.Radius)
 	if err != nil {
-		logging.ApmCtx(ctx).Info(fmt.Sprintf("invalid radius given for %s", userState.UserId),
-			logging.Metric("bad_radius"),
+		logging.MetricCtx(ctx, "bad_radius").Info(
+			"invalid radius given",
 			zap.Int32("radius", startMessage.Radius),
 		)
 		err = fmt.Errorf("validate radius: %w", err)
@@ -58,8 +58,8 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, startMessa
 
 	latLonValid := common.LatLonWithinUnitedStates(startMessage.Lat, startMessage.Lng)
 	if !latLonValid {
-		logging.ApmCtx(ctx).Info(fmt.Sprintf("invalid lat lon given for %s", userState.UserId),
-			logging.Metric("bad_lat_lng"),
+		logging.MetricCtx(ctx, "bad_lat_lng").Info(
+			"invalid lat lon given",
 			zap.Float64("lat", startMessage.Lat),
 			zap.Float64("lng", startMessage.Lng),
 		)
