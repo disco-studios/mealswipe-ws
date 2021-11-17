@@ -35,7 +35,7 @@ spec:
       containers:
       - name: metricbeat-setup
         #imagePullPolicy: Always
-        image: docker.elastic.co/beats/metricbeat:7.6.2
+        image: docker.elastic.co/beats/metricbeat:7.15.2
         args: [
           "-c", "/etc/metricbeat.yml",
           "-e",
@@ -169,11 +169,9 @@ data:
         - volume
       period: 15s
       host: ${NODE_NAME}
-      hosts: ["localhost:10255"]
-      # If using Red Hat OpenShift remove the previous hosts entry and 
-      # uncomment these settings:
-      # hosts: ["https://${HOSTNAME}:10250"]
+      hosts: ["https://${NODE_NAME}:10250"]
       bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      # ssl.verification_mode: "none"
       ssl.certificate_authorities:
         - /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
     - module: kubernetes
@@ -211,7 +209,7 @@ spec:
         effect: "NoSchedule"
       containers:
       - name: metricbeat
-        image: docker.elastic.co/beats/metricbeat:7.6.2
+        image: docker.elastic.co/beats/metricbeat:7.15.2
         args: [
           "-c", "/etc/metricbeat.yml",
           "-e",
@@ -338,7 +336,7 @@ data:
 
   aws.yml: |-
     - module: aws
-      period: 300s
+      period: 600s
       metricsets:
         # - ec2
         - ebs
@@ -363,8 +361,7 @@ data:
         - keyspace
       enabled: true
       hosts:
-        - mealswipe-cluster-redis-cluster.default.svc.cluster.local:6379
-      password: qrDMS6jKt4
+        - ms-redis-service.default.svc.cluster.local:6379
 ---
 # Deploy singleton instance in the whole cluster for some unique data sources, like kube-state-metrics
 apiVersion: apps/v1
@@ -388,7 +385,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: metricbeat
-        image: docker.elastic.co/beats/metricbeat:7.6.2
+        image: docker.elastic.co/beats/metricbeat:7.15.2
         args: [
           "-c", "/etc/metricbeat.yml",
           "-e",

@@ -21,58 +21,58 @@ data:
     output.elasticsearch:
     setup.kibana:
 ---
-# Run filebeat setup
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: filebeat-setup
-  namespace: kube-system
-spec:
-  activeDeadlineSeconds: 300
-  template:
-    spec:
-      restartPolicy: Never
-      containers:
-      - name: filebeat-setup
-        #imagePullPolicy: Always
-        image: docker.elastic.co/beats/filebeat:7.6.2
-        args: [
-          "-c", "/etc/filebeat.yml",
-          "-e",
-          "setup",
-        ]
-        env:
-        - name: NODE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        - name: ELASTIC_CLOUD_ID
-          valueFrom:
-            secretKeyRef:
-              name: beats-secrets
-              key: ELASTIC_CLOUD_ID
-        - name: ELASTIC_CLOUD_AUTH
-          valueFrom:
-            secretKeyRef:
-              name: beats-secrets
-              key: ELASTIC_CLOUD_AUTH
-        securityContext:
-          runAsUser: 0
-        volumeMounts:
-        - name: config
-          mountPath: /etc/filebeat.yml
-          readOnly: true
-          subPath: filebeat.yml
-        - name: dockersock
-          mountPath: /var/run/docker.sock
-      volumes:
-      - name: dockersock
-        hostPath:
-          path: /var/run/docker.sock
-      - name: config
-        configMap:
-          defaultMode: 0600
-          name: filebeat-setup-config
+# # Run filebeat setup
+# apiVersion: batch/v1
+# kind: Job
+# metadata:
+#   name: filebeat-setup
+#   namespace: kube-system
+# spec:
+#   activeDeadlineSeconds: 300
+#   template:
+#     spec:
+#       restartPolicy: Never
+#       containers:
+#       - name: filebeat-setup
+#         #imagePullPolicy: Always
+#         image: docker.elastic.co/beats/filebeat:7.15.2
+#         args: [
+#           "-c", "/etc/filebeat.yml",
+#           "-e",
+#           "setup",
+#         ]
+#         env:
+#         - name: NODE_NAME
+#           valueFrom:
+#             fieldRef:
+#               fieldPath: spec.nodeName
+#         - name: ELASTIC_CLOUD_ID
+#           valueFrom:
+#             secretKeyRef:
+#               name: beats-secrets
+#               key: ELASTIC_CLOUD_ID
+#         - name: ELASTIC_CLOUD_AUTH
+#           valueFrom:
+#             secretKeyRef:
+#               name: beats-secrets
+#               key: ELASTIC_CLOUD_AUTH
+#         securityContext:
+#           runAsUser: 0
+#         volumeMounts:
+#         - name: config
+#           mountPath: /etc/filebeat.yml
+#           readOnly: true
+#           subPath: filebeat.yml
+#         - name: dockersock
+#           mountPath: /var/run/docker.sock
+#       volumes:
+#       - name: dockersock
+#         hostPath:
+#           path: /var/run/docker.sock
+#       - name: config
+#         configMap:
+#           defaultMode: 0600
+#           name: filebeat-setup-config
 
 ---
 apiVersion: v1
@@ -156,7 +156,7 @@ spec:
         effect: "NoSchedule"
       containers:
       - name: filebeat
-        image: docker.elastic.co/beats/filebeat:7.6.2
+        image: docker.elastic.co/beats/filebeat:7.15.2
         args: [
           "-c", "/etc/filebeat.yml",
           "-e",
@@ -240,6 +240,7 @@ rules:
   resources:
   - namespaces
   - pods
+  - nodes
   verbs:
   - get
   - watch
