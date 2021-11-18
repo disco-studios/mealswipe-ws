@@ -48,7 +48,7 @@ func pubsubPump(userState *types.UserState, messageQueue <-chan string) {
 
 			// If it was a game started, send the next locs too
 			if websocketResponse.GetGameStartedMessage() != nil {
-				for i := 0; i < 2; i++ {
+				for i := 0; i < 3; i++ {
 					err := sessions.SendNextLocToUser(context.TODO(), userState)
 					if err != nil {
 						logger.Error("pumpsump pump failed to send next location to user", zap.Error(err))
