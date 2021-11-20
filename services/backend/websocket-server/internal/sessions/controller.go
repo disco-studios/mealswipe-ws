@@ -58,8 +58,8 @@ func JoinById(ctx context.Context, userState *types.UserState, sessionId string,
 	return
 }
 
-func Rejoin(ctx context.Context, userState *types.UserState) (inGame bool, err error) {
-	inGame, err = isUserInId(ctx, userState.UserId, userState.JoinedSessionId)
+func Rejoin(ctx context.Context, userState *types.UserState) (inGame bool, isOwner bool, err error) {
+	inGame, isOwner, err = isUserInId(ctx, userState.UserId, userState.JoinedSessionId)
 	if (err != nil) || (!inGame) {
 		return
 	}

@@ -116,12 +116,19 @@ func rejoin(ctx context.Context, userId string, sessionId string, genericPubsub 
 	return
 }
 
-func isUserInId(ctx context.Context, userId string, sessionId string) (inGame bool, err error) {
-	span, ctx := apm.StartSpan(ctx, "getIdFromCode", "sessions")
+func isUserInId(ctx context.Context, userId string, sessionId string) (inGame bool, isOwner bool, err error) {
+	span, ctx := apm.StartSpan(ctx, "isUserInId", "sessions")
 	defer span.End()
 
-	result := msredis.SIsMember(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS), userId)
-	return result.Val(), result.Err()
+	pipe := msredis.Pipeline()
+	owner := msredis.Get(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_OWNER_ID))
+	isMember := msredis.SIsMember(ctx, keys.BuildSessionKey(sessionId, keys.KEY_SESSION_USERS), userId)
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return
+	}
+
+	return isMember.Val(), owner.Val() == userId, nil
 }
 
 func reverse(venues []string) []string {

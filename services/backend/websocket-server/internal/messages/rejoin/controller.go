@@ -16,7 +16,7 @@ func HandleMessage(ctx context.Context, userState *types.UserState, rejoinMessag
 	userState.JoinedSessionId = rejoinMessage.SessionId
 	userState.UserId = rejoinMessage.UserId
 
-	inGame, _err := sessions.Rejoin(ctx, userState)
+	inGame, isOwner, _err := sessions.Rejoin(ctx, userState)
 	if _err != nil {
 		err = fmt.Errorf("rejoin: %w", _err)
 		return
@@ -26,7 +26,11 @@ func HandleMessage(ctx context.Context, userState *types.UserState, rejoinMessag
 		err = fmt.Errorf("bad rejoin info given")
 	}
 
-	userState.HostState = mealswipe.HostState_JOINING
+	if isOwner {
+		userState.HostState = mealswipe.HostState_HOSTING
+	} else {
+		userState.HostState = mealswipe.HostState_JOINING
+	}
 
 	return
 }

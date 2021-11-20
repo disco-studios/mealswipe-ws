@@ -69,17 +69,17 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, startMessa
 		}
 	}
 
-	sessionId, err := sessions.GetIdFromCode(ctx, userState.JoinedSessionCode)
-	if err != nil || sessionId == "" {
-		err = fmt.Errorf("get id from code: %w", err)
-		return err
-	}
-	if sessionId != userState.JoinedSessionId {
-		return &mealswipe.MessageValidationError{
-			MessageType:   "start",
-			Clarification: "session code links to session other than joined",
-		}
-	}
+	// sessionId, err := sessions.GetIdFromCode(ctx, userState.JoinedSessionCode)
+	// if err != nil || sessionId == "" {
+	// 	err = fmt.Errorf("get id from code: %w", err)
+	// 	return err
+	// }
+	// if sessionId != userState.JoinedSessionId {
+	// 	return &mealswipe.MessageValidationError{
+	// 		MessageType:   "start",
+	// 		Clarification: "session code links to session other than joined",
+	// 	}
+	// }
 
 	return
 }

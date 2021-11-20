@@ -143,7 +143,7 @@ func readPump(userState *types.UserState, connection *websocket.Conn) {
 
 		err = messages.ValidateMessage(userState, genericMessage)
 		if err != nil {
-			logging.MetricCtx(ctx, "in_message_length").Info(
+			logging.MetricCtx(ctx, "message_validation_failed").Info(
 				"failed to validate message",
 				zap.Any("raw", genericMessage),
 				zap.Error(err),
