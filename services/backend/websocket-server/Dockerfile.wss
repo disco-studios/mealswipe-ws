@@ -42,7 +42,7 @@ RUN cp /build/main .
 # Prod, just our image and env vars
 # Minimizes our prod image size
 ##################################################################### 
-FROM alpine:latest as prod
+FROM --platform=linux/amd64 alpine:latest as prod
 
 # Websocket server
 EXPOSE 8080

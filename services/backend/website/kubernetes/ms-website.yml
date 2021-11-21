@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-website
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-website
+  template:
+    metadata:
+      labels:
+        app: ms-website
+    spec:
+      containers:
+        - name: ms-website
+          image: 850351896280.dkr.ecr.us-east-1.amazonaws.com/mealswipe-website
+          ports:
+            - containerPort: 8080
+      tolerations:
+            - key: "stateless"
+              operator: "Equal"
+              value: "true"
+              effect: "NoSchedule"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-website
+spec:
+  type: NodePort
+  selector:
+    app: ms-website
+  ports:
+  - port: 8080
