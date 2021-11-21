@@ -11,6 +11,11 @@ deploy:
 	docker tag mealswipe 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
 	docker push 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
 	kubectl rollout restart deployment ms-ws
+deploy-web:
+	cd ./website/ && docker build -t mealswipe-website .
+	docker tag mealswipe-website 850351896280.dkr.ecr.us-east-1.amazonaws.com/mealswipe-website
+	docker push 850351896280.dkr.ecr.us-east-1.amazonaws.com/mealswipe-website
+	kubectl rollout restart deployment ms-website
 stop:
 	docker kill mealswipe
 	docker rm mealswipe

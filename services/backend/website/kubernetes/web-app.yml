@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-website
+  labels:
+    app: ms-website
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-website
+  template:
+    metadata:
+      labels:
+        app: ms-website
+    spec:
+      containers:
+      - name: ms-website
+        image: 850351896280.dkr.ecr.us-east-1.amazonaws.com/mealswipe-website:latest
+        ports:
+        - containerPort: 8080
