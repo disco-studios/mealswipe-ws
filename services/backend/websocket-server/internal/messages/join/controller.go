@@ -3,6 +3,7 @@ package join
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/common"
@@ -13,7 +14,12 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
+var uuidRegex, _ = regexp.Compile("^u-[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}$")
+
 func HandleMessage(ctx context.Context, userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
+	userState.UserId = joinMessage.UUID
+	ctx = userState.TagContext(ctx)
+
 	// Get the session ID for the given code
 	sessionId, _err := sessions.GetIdFromCode(ctx, joinMessage.Code)
 	if _err != nil {
@@ -85,6 +91,19 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessag
 		return &mealswipe.MessageValidationError{
 			MessageType:   "join",
 			Clarification: "invalid nickname",
+		}
+	}
+
+	if joinMessage.UUID != "" {
+		if !uuidRegex.Match([]byte(joinMessage.UUID)) {
+			logging.MetricCtx(ctx, "bad_uuid").Info(
+				"invalid uuid given",
+				zap.String("uuid", joinMessage.UUID),
+			)
+			return &mealswipe.MessageValidationError{
+				MessageType:   "join",
+				Clarification: "invalid uuid",
+			}
 		}
 	}
 

@@ -49,14 +49,14 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 	return
 }
 
-func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipepb.Location, err error) {
+func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipepb.Location, locId string, err error) {
 	span, ctx := apm.StartSpan(ctx, "FromInd", "locations")
 	defer span.End()
 
 	locId, distance, err := idFromInd(ctx, sessionId, index)
 	if err != nil {
 		err = fmt.Errorf("getting id for ind: %w", err)
-		return nil, err
+		return nil, "", err
 	}
 
 	if len(locId) == 0 {
@@ -66,7 +66,7 @@ func FromInd(ctx context.Context, sessionId string, index int32) (loc *mealswipe
 		)
 		return &mealswipepb.Location{
 			OutOfLocations: true,
-		}, nil
+		}, locId, nil
 	}
 
 	loc, err = FromId(ctx, locId, index)

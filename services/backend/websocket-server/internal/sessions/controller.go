@@ -85,13 +85,24 @@ func Start(ctx context.Context, code string, sessionId string, lat float64, lng 
 	span, ctx := apm.StartSpan(ctx, "Start", "sessions")
 	defer span.End()
 
-	logging.MetricCtx(ctx, "game_start").Info(fmt.Sprintf("game %s started", sessionId),
+	activeUsersLen := -1
+	activeUsers, err := getActiveUsers(ctx, sessionId)
+	if err == nil {
+		activeUsersLen = len(activeUsers)
+	} else {
+		logging.Ctx(ctx).Error("failed to get active users for metric", zap.Error(err))
+	}
+
+	logging.MetricCtx(ctx, "session_start").Info(fmt.Sprintf("session %s started", sessionId),
 		logging.Code(code),
-		zap.Float64("lat", lat),
-		zap.Float64("lng", lng),
 		zap.Int32("radius", radius),
 		zap.String("category", categoryId),
+		zap.Int("active_users", activeUsersLen),
+		zap.Namespace("geo.location"),
+		zap.Float64("lat", lat),
+		zap.Float64("lon", lng),
 	)
+	logging.Get().With()
 
 	// TODO This write should maybe go into locs
 	venueIds, distances, err := locations.IdsForLocation(ctx, lat, lng, radius, categoryId)
@@ -126,12 +137,15 @@ func CheckWin(ctx context.Context, userState *types.UserState) (err error) {
 	if win {
 		// TODO This shouldn't live here I don't think
 		var loc *mealswipepb.Location
-		loc, err = locations.FromInd(ctx, userState.JoinedSessionId, winIndex)
-		if err != nil {
-			err = fmt.Errorf("winning location from ind: %w", err)
+		loc, locId, _err := locations.FromInd(ctx, userState.JoinedSessionId, winIndex)
+		if _err != nil {
+			err = fmt.Errorf("winning location from ind: %w", _err)
 			return
 		}
-		// TODO Log winning loc
+
+		logging.MetricCtx(ctx, "session_win").Info(fmt.Sprintf("session %s won", userState.JoinedSessionId),
+			zap.String("winning_loc", locId),
+		)
 
 		err = userState.PubsubWebsocketResponse(&mealswipepb.WebsocketResponse{
 			GameWinMessage: &mealswipepb.GameWinMessage{
@@ -151,16 +165,21 @@ func CheckWin(ctx context.Context, userState *types.UserState) (err error) {
 	return
 }
 
-func Create(ctx context.Context, userState *types.UserState) (sessionID string, code string, err error) {
+func Create(ctx context.Context, userState *types.UserState) (sessionId string, code string, err error) {
 	span, ctx := apm.StartSpan(ctx, "Create", "sessions")
 	defer span.End()
 
-	sessionID = "s-" + uuid.NewString()
-	code, err = codes.Reserve(ctx, sessionID)
+	sessionId = "s-" + uuid.NewString()
+
+	logging.MetricCtx(ctx, "session_create").Info(fmt.Sprintf("session %s created", sessionId),
+		logging.SessionId(sessionId),
+	)
+
+	code, err = codes.Reserve(ctx, sessionId)
 	if err != nil {
 		return
 	}
-	err = create(ctx, code, sessionID, userState.UserId)
+	err = create(ctx, code, sessionId, userState.UserId)
 	return
 }
 
@@ -173,7 +192,7 @@ func GetNextLocForUser(ctx context.Context, userState *types.UserState) (loc *me
 		return
 	}
 
-	loc, err = locations.FromInd(ctx, userState.JoinedSessionId, int32(ind))
+	loc, _, err = locations.FromInd(ctx, userState.JoinedSessionId, int32(ind))
 	return
 }
 

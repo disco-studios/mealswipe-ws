@@ -3,7 +3,9 @@ package rejoin
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/sessions"
@@ -11,6 +13,8 @@ import (
 	"mealswipe.app/mealswipe/pkg/mealswipe"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
+
+var uuidRegex, _ = regexp.Compile("^u-[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}$")
 
 func HandleMessage(ctx context.Context, userState *types.UserState, rejoinMessage *mealswipepb.RejoinMessage) (err error) {
 	userState.JoinedSessionId = rejoinMessage.SessionId
@@ -64,6 +68,17 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, rejoinMess
 		return &mealswipe.MessageValidationError{
 			MessageType:   "rejoin",
 			Clarification: "invalid sessionid format",
+		}
+	}
+
+	if !uuidRegex.Match([]byte(rejoinMessage.UserId)) {
+		logging.MetricCtx(ctx, "bad_uuid_rejoin").Info(
+			"invalid uuid given",
+			zap.String("uuid", rejoinMessage.UserId),
+		)
+		return &mealswipe.MessageValidationError{
+			MessageType:   "rejoin",
+			Clarification: "invalid uuid",
 		}
 	}
 
