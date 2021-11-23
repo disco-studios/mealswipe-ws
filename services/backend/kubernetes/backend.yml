@@ -111,3 +111,13 @@ spec:
                 name: ms-website
                 port:
                   number: 8080
+    - host: www.mealswipe.app
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: ms-website
+                port:
+                  number: 8080
