@@ -2,6 +2,8 @@ package logging
 
 import (
 	"context"
+	"log"
+	"os"
 
 	"go.elastic.co/apm/module/apmzap"
 	"go.uber.org/zap"
@@ -10,11 +12,14 @@ import (
 
 var logger *zap.Logger
 
-func SetLogger(logr *zap.Logger) {
-	if logger == nil {
-		logger = logr
-	} else {
-		logger.Warn("tried to set logger when we already have one")
+func init() {
+	loggerConfig := zap.NewProductionConfig()
+	loggerConfig.EncoderConfig.TimeKey = "@timestamp"
+	loggerConfig.EncoderConfig.MessageKey = "message"
+	var err error
+	logger, err = loggerConfig.Build(zap.Fields(zap.String("app", os.Getenv("DISCO_LOGGER_APP")), zap.Namespace(os.Getenv("DISCO_LOGGER_NAMESPACE"))))
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -27,11 +32,11 @@ func metric(logga *zap.Logger, metric_str string) *zap.Logger {
 }
 
 func Metric(metric_str string) *zap.Logger {
-	return metric(logger, metric_str)
+	return metric(Get(), metric_str)
 }
 
 func MetricCtx(ctxt context.Context, metric_str string) *zap.Logger {
-	return metric(ctx(logger, ctxt), metric_str)
+	return metric(ctx(Get(), ctxt), metric_str)
 }
 
 func ctx(logga *zap.Logger, ctx context.Context) *zap.Logger {
@@ -57,7 +62,7 @@ func ctx(logga *zap.Logger, ctx context.Context) *zap.Logger {
 }
 
 func Ctx(ctxt context.Context) *zap.Logger {
-	return ctx(logger, ctxt)
+	return ctx(Get(), ctxt)
 }
 
 func ApmCtx(ctx context.Context, logga *zap.Logger) *zap.Logger {

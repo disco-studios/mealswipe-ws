@@ -4,21 +4,23 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"go.elastic.co/apm"
 	"go.uber.org/zap"
+	"mealswipe.app/mealswipe/internal/config"
 	"mealswipe.app/mealswipe/internal/logging"
 )
 
-const MAX_CODE_ATTEMPTS int = 6 // 1-(1000000/(21^6))^6 = 0.999999999, aka almost certain with 1mil codes/day
-// vowels removed to reduce odds of bad words
-var SESSION_CODE_CHARSET []string = []string{
-	"B", "C", "D", "F", "G", "H", "J",
-	"K", "L", "M", "N", "P", "Q", "R",
-	"S", "T", "V", "W", "X", "Y", "Z",
-}
+var MAX_CODE_ATTEMPTS = config.GetenvIntErrorless("MS_MAX_CODE_RETRIES", 6) // 1-(1000000/(21^6))^6 = 0.999999999, aka almost certain with 1mil codes/day
 
-const SESSION_CODE_LENGTH int = 6
+// vowels removed to reduce odds of bad words
+var SESSION_CODE_CHARSET []string = strings.Split(
+	config.GetenvStr("MS_SESSION_CODE_CHARSET", "BCDFGHJKLMNPQRSTVWXYZ"),
+	"",
+)
+
+var SESSION_CODE_LENGTH int = config.GetenvIntErrorless("MS_SESSION_CODE_LENGTH", 6)
 
 var SESSION_CODE_BASE = len(SESSION_CODE_CHARSET)
 var MAX_SESSION_CODE_RAW int = int(math.Pow(

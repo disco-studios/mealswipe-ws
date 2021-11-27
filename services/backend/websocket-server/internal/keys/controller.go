@@ -1,19 +1,23 @@
 package keys
 
-import "fmt"
+import (
+	"fmt"
 
-const KEY_USER_SESSION string = "session"
-const KEY_SESSION_USERS string = "users"
-const KEY_SESSION_OWNER_ID string = "owner_id"
-const KEY_SESSION_GAME_STATE string = "game_state"
-const KEY_SESSION_LOCATIONS string = "locations"
-const KEY_SESSION_LOCATION_DISTANCES string = "locations:distances"
-const KEY_SESSION_VOTE_TALLY string = "vote_tally"
-const KEY_SESSION_USERS_ACTIVE string = "users:active"
-const KEY_SESSION_VOTEIND string = "voteind"
-const KEY_SESSION_USERS_NICKNAMES string = "users:nicknames"
-const KEY_USER_VOTES string = "votes"
-const PREFIX_LOC_API string = "loc:api:"
+	"mealswipe.app/mealswipe/internal/config"
+)
+
+var KEY_USER_SESSION string = config.GetenvStr("MS_KEY_USER_SESSION", "session")
+var KEY_SESSION_USERS string = config.GetenvStr("MS_KEY_SESSION_USERS", "users")
+var KEY_SESSION_OWNER_ID string = config.GetenvStr("MS_KEY_SESSION_OWNER_ID", "owner_id")
+var KEY_SESSION_GAME_STATE string = config.GetenvStr("MS_KEY_SESSION_GAME_STATE", "game_state")
+var KEY_SESSION_LOCATIONS string = config.GetenvStr("MS_KEY_SESSION_LOCATIONS", "locations")
+var KEY_SESSION_LOCATION_DISTANCES string = config.GetenvStr("MS_KEY_SESSION_LOCATION_DISTANCES", "locations:distances")
+var KEY_SESSION_VOTE_TALLY string = config.GetenvStr("MS_KEY_SESSION_VOTE_TALLY", "vote_tally")
+var KEY_SESSION_USERS_ACTIVE string = config.GetenvStr("MS_KEY_SESSION_USERS_ACTIVE", "users:active")
+var KEY_SESSION_VOTEIND string = config.GetenvStr("MS_KEY_SESSION_VOTEIND", "voteind")
+var KEY_SESSION_USERS_NICKNAMES string = config.GetenvStr("MS_KEY_SESSION_USERS_NICKNAMES", "users:nicknames")
+var KEY_USER_VOTES string = config.GetenvStr("MS_KEY_USER_VOTES", "votes")
+var PREFIX_LOC_API string = config.GetenvStr("MS_PREFIX_LOC_API", "loc:api:")
 
 func BuildSessionKey(sessionId string, post string) string {
 	if post != "" {

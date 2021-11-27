@@ -7,18 +7,26 @@ import (
 
 	"go.elastic.co/apm"
 	"go.uber.org/zap"
+	"mealswipe.app/mealswipe/internal/config"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
+
+var DISABLE_CACHING = config.GetenvBoolErrorless("MS_DISABLE_LOC_CACHING", false)
+var DISABLE_CACHE_READ = config.GetenvBoolErrorless("MS_DISABLE_LOC_CACHE_READ", false)
 
 func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.Location, err error) {
 	span, ctx := apm.StartSpan(ctx, "FromId", "locations")
 	defer span.End()
 
-	miss, locationStore, err := fromIdCached(ctx, loc_id)
-	if err != nil {
-		err = fmt.Errorf("getting loc from cache: %w", err)
-		return
+	var miss = true
+	var locationStore *mealswipepb.LocationStore
+	if !DISABLE_CACHE_READ {
+		miss, locationStore, err = fromIdCached(ctx, loc_id)
+		if err != nil {
+			err = fmt.Errorf("getting loc from cache: %w", err)
+			return
+		}
 	}
 
 	if miss {
@@ -28,10 +36,12 @@ func FromId(ctx context.Context, loc_id string, index int32) (loc *mealswipepb.L
 			return
 		}
 
-		err = writeLocationStore(ctx, loc_id, locationStore)
-		if err != nil {
-			err = fmt.Errorf("writing loc to cache: %w", err)
-			return // TODO We can proceed here even if we fail to cache
+		if !DISABLE_CACHING {
+			err = writeLocationStore(ctx, loc_id, locationStore)
+			if err != nil {
+				err = fmt.Errorf("writing loc to cache: %w", err)
+				return // TODO We can proceed here even if we fail to cache
+			}
 		}
 	}
 

@@ -14,6 +14,7 @@ import (
 	"go.elastic.co/apm"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
+	"mealswipe.app/mealswipe/internal/config"
 	"mealswipe.app/mealswipe/internal/keys"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/msredis"
@@ -21,9 +22,8 @@ import (
 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
-const LOCATION_MODE_API = true
-const HITS_BEFORE_MISS = 4 + 1 // show 4 hits until show miss
-var ALLOWED_CATEGORIES = []string{
+var HITS_BEFORE_MISS = config.GetenvIntErrorless("MS_HITS_BEFORE_FRESH", 4) + 1 // show 4 hits until show miss
+var ALLOWED_CATEGORIES = config.GetenvStrArrErrorless("MS_ALLOWED_CATEGORIES", []string{
 	"4bf58dd8d48988d116941735", // Bars
 	"4bf58dd8d48988d16e941735", // Fast Food
 	"4bf58dd8d48988d1d0941735", // Dessert
@@ -37,9 +37,7 @@ var ALLOWED_CATEGORIES = []string{
 	"4bf58dd8d48988d1ca941735", // Pizza
 	"4bf58dd8d48988d1d3941735", // Vegetarian / Vegan
 	"4d4b7105d754a06374d81259", // Food
-}
-
-const DISABLE_CACHING = false
+})
 
 func fromIdCached(ctx context.Context, loc_id string) (miss bool, locStore *mealswipepb.LocationStore, err error) {
 	span, ctx := apm.StartSpan(ctx, "fromIdCached", "locations")

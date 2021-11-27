@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -22,17 +21,9 @@ func handlePreStop(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Done"))
 }
 
-// TODO NULL SAFETY FROM PROTOBUF STUFF
 func main() {
-	loggerConfig := zap.NewProductionConfig()
-	loggerConfig.EncoderConfig.TimeKey = "@timestamp"
-	loggerConfig.EncoderConfig.MessageKey = "message"
-	logger, err := loggerConfig.Build(zap.Fields(zap.String("app", "ms-ws"), zap.Namespace("mealswipe")))
-	if err != nil {
-		log.Fatal(err)
-	}
+	logger := logging.Get()
 	defer logger.Sync()
-	logging.SetLogger(logger)
 
 	// Connect to redis
 	msredis.LoadRedisClient()
@@ -59,7 +50,7 @@ func main() {
 	logger.Info("init")
 	http.HandleFunc("/", websockets.WebsocketHandler)
 
-	err = http.ListenAndServe(*addr, nil)
+	err := http.ListenAndServe(*addr, nil)
 	logger.Error("http server failed", zap.Error(err))
 	websockets.Decommission()
 	logging.Get().Core().Sync()

@@ -9,10 +9,12 @@ import (
 	"github.com/go-redis/redismock/v8"
 	"go.elastic.co/apm"
 	apmgoredis "go.elastic.co/apm/module/apmgoredisv8"
+	"mealswipe.app/mealswipe/internal/config"
 )
 
-const TRACE_REDIS bool = true
-const CLUSTER bool = false
+var TRACE_REDIS bool = config.GetenvBoolErrorless("MS_APM_TRACE_REDIS", true)
+var CLUSTER bool = config.GetenvBoolErrorless("MS_REDIS_CLUSTER_MODE", false)
+var REDIS_ADDRESS string = config.GetenvStr("MS_REDIS_ADDRESS", "ms-redis-service:6379")
 
 var _redisClusterClient *redis.ClusterClient
 var _redisClient *redis.Client
@@ -20,8 +22,7 @@ var _redisClient *redis.Client
 func LoadRedisClient() {
 	if CLUSTER {
 		_redisClusterClient = redis.NewClusterClient(&redis.ClusterOptions{
-			Addrs:         []string{"mealswipe-cluster-redis-cluster:6379"},
-			Password:      "qrDMS6jKt4",
+			Addrs:         []string{REDIS_ADDRESS},
 			RouteRandomly: true,
 		})
 		if TRACE_REDIS {
@@ -29,7 +30,7 @@ func LoadRedisClient() {
 		}
 	} else {
 		_redisClient = redis.NewClient(&redis.Options{
-			Addr: "ms-redis-service:6379",
+			Addr: REDIS_ADDRESS,
 		})
 	}
 }
