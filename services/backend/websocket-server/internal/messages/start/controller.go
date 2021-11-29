@@ -56,7 +56,10 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, startMessa
 		}
 	}
 
-	latLonValid := common.LatLonWithinUnitedStates(startMessage.Lat, startMessage.Lng)
+	latLonValid := false
+	if startMessage.Lat != 0 && startMessage.Lng != 0 {
+		latLonValid = common.LatLonWithinUnitedStates(startMessage.Lat, startMessage.Lng)
+	}
 	if !latLonValid {
 		logging.MetricCtx(ctx, "bad_lat_lng").Info(
 			"invalid lat lon given",
