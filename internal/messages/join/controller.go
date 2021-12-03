@@ -17,7 +17,7 @@ import (
 var uuidRegex, _ = regexp.Compile("^u-[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}$")
 
 func HandleMessage(ctx context.Context, userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
-	userState.UserId = joinMessage.UUID
+	userState.UserId = joinMessage.Uuid
 	ctx = userState.TagContext(ctx)
 
 	// Get the session ID for the given code
@@ -94,11 +94,11 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessag
 		}
 	}
 
-	if joinMessage.UUID != "" {
-		if !uuidRegex.Match([]byte(joinMessage.UUID)) {
+	if joinMessage.Uuid != "" {
+		if !uuidRegex.Match([]byte(joinMessage.Uuid)) {
 			logging.MetricCtx(ctx, "bad_uuid").Info(
 				"invalid uuid given",
-				zap.String("uuid", joinMessage.UUID),
+				zap.String("uuid", joinMessage.Uuid),
 			)
 			return &mealswipe.MessageValidationError{
 				MessageType:   "join",
