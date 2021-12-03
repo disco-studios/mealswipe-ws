@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/types"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 /*

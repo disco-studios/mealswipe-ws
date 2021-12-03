@@ -3,6 +3,7 @@ module mealswipe.app/mealswipe
 go 1.16
 
 require (
+	github.com/Treble-Development/mealswipe-proto v1.0.1
 	github.com/gin-gonic/gin v1.7.4 // indirect
 	github.com/go-redis/redis/v8 v8.10.0
 	github.com/go-redis/redismock/v8 v8.0.6 // indirect

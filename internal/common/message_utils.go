@@ -1,6 +1,6 @@
 package common
 
-import "mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
+import "github.com/Treble-Development/mealswipe-proto/mealswipepb"
 
 func HasCreateMessage(genericMessage *mealswipepb.WebsocketMessage) bool {
 	return (*genericMessage).GetCreateMessage() != nil

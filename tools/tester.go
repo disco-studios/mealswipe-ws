@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 // var addr = flag.String("addr", "127.0.0.1:8080", "http service address")

@@ -7,7 +7,7 @@ package start
 // 	"mealswipe.app/mealswipe/internal/business"
 // 	"mealswipe.app/mealswipe/internal/constants"
 // 	"mealswipe.app/mealswipe/internal/types"
-// 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
+// 	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 // )
 
 // func TestValidateStartMessage(t *testing.T) {

@@ -3,7 +3,7 @@ package common
 import (
 	"testing"
 
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 )
 
 func HasCreateMessageTest(t *testing.T) {

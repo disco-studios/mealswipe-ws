@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"github.com/go-redis/redis/v8"
 	"go.elastic.co/apm"
 	"go.uber.org/zap"
@@ -19,7 +20,6 @@ import (
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/msredis"
 	"mealswipe.app/mealswipe/internal/types"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 var HITS_BEFORE_MISS = config.GetenvIntErrorless("MS_HITS_BEFORE_FRESH", 4) + 1 // show 4 hits until show miss

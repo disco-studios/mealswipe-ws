@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"go.elastic.co/apm"
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/common"
@@ -14,7 +15,6 @@ import (
 	"mealswipe.app/mealswipe/internal/messages/start"
 	"mealswipe.app/mealswipe/internal/messages/vote"
 	"mealswipe.app/mealswipe/internal/types"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 // TODO NULL SAFETY FROM PROTOBUF STUFF

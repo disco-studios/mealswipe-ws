@@ -6,7 +6,7 @@ package vote
 
 // 	"mealswipe.app/mealswipe/internal/constants"
 // 	"mealswipe.app/mealswipe/internal/types"
-// 	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
+// 	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 // )
 
 // func TestValidateVoteMessage(t *testing.T) {

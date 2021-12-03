@@ -3,6 +3,7 @@ package messages
 import (
 	"context"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/messages/create"
 	"mealswipe.app/mealswipe/internal/messages/join"
@@ -11,7 +12,6 @@ import (
 	"mealswipe.app/mealswipe/internal/messages/vote"
 	"mealswipe.app/mealswipe/internal/types"
 	"mealswipe.app/mealswipe/pkg/mealswipe"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 // TODO Check for empty states

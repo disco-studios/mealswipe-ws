@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"go.elastic.co/apm"
@@ -13,7 +14,6 @@ import (
 	"mealswipe.app/mealswipe/internal/locations"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/types"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 func GetIdFromCode(ctx context.Context, code string) (sessionId string, err error) {

@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/common"
 	"mealswipe.app/mealswipe/internal/logging"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/types"
 	"mealswipe.app/mealswipe/pkg/mealswipe"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 var uuidRegex, _ = regexp.Compile("^u-[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}$")

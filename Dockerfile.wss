@@ -1,7 +1,7 @@
 #####################################################################
 # Builder, download deps and prepare for build
 ##################################################################### 
-FROM golang:alpine AS builder
+FROM golang:stretch AS builder
 
 # Set necessary environmet variables needed for our image
 ENV GO111MODULE=on \
@@ -11,6 +11,13 @@ ENV GO111MODULE=on \
 
 # Move to working directory /build
 WORKDIR /build
+
+# Get git configued to pull private
+# TODO: Remove my PAT from here lol
+RUN git config \
+  --global \
+  url."https://cameronlund4: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@github.com".insteadOf \
+  "https://github.com"
 
 # Copy and download dependency using go mod
 COPY ./go.mod .

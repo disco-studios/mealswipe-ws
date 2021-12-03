@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"mealswipe.app/mealswipe/internal/keys"
 	"mealswipe.app/mealswipe/internal/msredis"
 	"mealswipe.app/mealswipe/pkg/mealswipe"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 type UserState struct {

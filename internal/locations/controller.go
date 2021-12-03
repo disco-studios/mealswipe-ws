@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"go.elastic.co/apm"
 	"go.uber.org/zap"
 	"mealswipe.app/mealswipe/internal/config"
 	"mealswipe.app/mealswipe/internal/logging"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 var DISABLE_CACHING = config.GetenvBoolErrorless("MS_DISABLE_LOC_CACHING", false)

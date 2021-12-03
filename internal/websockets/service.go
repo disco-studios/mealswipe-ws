@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Treble-Development/mealswipe-proto/mealswipepb"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -14,7 +15,6 @@ import (
 	"mealswipe.app/mealswipe/internal/messages"
 	"mealswipe.app/mealswipe/internal/sessions"
 	"mealswipe.app/mealswipe/internal/types"
-	"mealswipe.app/mealswipe/protobuf/mealswipe/mealswipepb"
 )
 
 // Clean up things we couldn't directly defer, because they are defined in different scopes
