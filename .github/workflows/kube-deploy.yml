@@ -36,6 +36,7 @@ jobs:
         mkdir $HOME/.kube
         echo "$KUBE_CONFIG_DATA" > $HOME/.kube/config
         echo "Running command!"
+        kubectl config view
         kubectl get pods -A
 
 
