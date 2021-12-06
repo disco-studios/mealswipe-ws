@@ -25,11 +25,12 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: deploy to cluster
-      uses: steebchen/kubectl@v2.0.0
-      with: # defaults to latest kubectl binary version
-        config: ${{ secrets.KUBE_CONFIG_DATA }}
-        command: get pods -A
+    - name: Test get pods
+      uses: actions-hub/kubectl@master
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+      with:
+        args: get pods
 
 
 
