@@ -41,8 +41,8 @@ jobs:
         echo "Now: $KUBECONFIG"
 
         mkdir $HOME/.kube
-        echo "$KUBE_CONFIG_DATA"
-        echo "$KUBE_CONFIG_DATA" > $HOME/.kube/config
+        echo "${{ secrets.KUBE_CONFIG_DATA }}"
+        echo "${{ secrets.KUBE_CONFIG_DATA }}" > $HOME/.kube/config
 
         echo "Running command!"
         kubectl config view
