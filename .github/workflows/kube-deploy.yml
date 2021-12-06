@@ -33,11 +33,11 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y kubectl
         echo "Prepping config!"
-        mkdir $HOME/.kube
-        echo "Default kube config: `$KUBECONFIG`"
-        export KUBECONFIG="$HOME/.kube/config"
-        echo "Now: `$KUBECONFIG`"
-        echo "$KUBE_CONFIG_DATA" > $HOME/.kube/config
+        mkdir ${HOME}/.kube
+        echo "Default kube config: `${KUBECONFIG}`"
+        export KUBECONFIG="${HOME}/.kube/config"
+        echo "Now: `${KUBECONFIG}`"
+        echo "$KUBE_CONFIG_DATA" > ${HOME}/.kube/config
         echo "Running command!"
         kubectl config view
         kubectl get pods -A
