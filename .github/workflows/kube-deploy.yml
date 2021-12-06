@@ -32,16 +32,10 @@ jobs:
         echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
         sudo apt-get update
         sudo apt-get install -y kubectl
-
+        
         echo "Prepping config!"
-
-        echo "Default kube config: $KUBECONFIG"
-        echo "$HOME/.kube/config"
         export KUBECONFIG="$HOME/.kube/config"
-        echo "Now: $KUBECONFIG"
-
         mkdir $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG_DATA }}"
         echo "${{ secrets.KUBE_CONFIG_DATA }}" > $HOME/.kube/config
 
         echo "Running command!"
