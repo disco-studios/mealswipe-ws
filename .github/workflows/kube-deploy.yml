@@ -33,7 +33,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y kubectl
         echo "Prepping config!"
-        touch $HOME/.kube/config
+        mkdir $HOME/.kube
         echo "$KUBE_CONFIG_DATA" > $HOME/.kube/config
         echo "Running command!"
         kubectl get pods -A
