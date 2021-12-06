@@ -35,10 +35,10 @@ jobs:
 
         echo "Prepping config!"
 
-        echo "Default kube config: '$KUBECONFIG'"
+        echo "Default kube config: $KUBECONFIG"
         echo "$HOME/.kube/config"
         export KUBECONFIG="$HOME/.kube/config"
-        echo "Now: `$KUBECONFIG`"
+        echo "Now: $KUBECONFIG"
 
         mkdir $HOME/.kube
         echo "$KUBE_CONFIG_DATA"
