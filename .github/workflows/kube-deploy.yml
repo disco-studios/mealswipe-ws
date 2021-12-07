@@ -12,12 +12,6 @@ jobs:
     name: kube deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Docker Set up QEMU
-        uses: docker/setup-qemu-action@v1
-
-      - name: Docker Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -32,12 +26,25 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Docker Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          tags: 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
+      - name: Docker Build
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and push it to ECR 
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+      - name: Docker Push
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Configure kubernetes
         run: |
