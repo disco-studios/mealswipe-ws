@@ -1,0 +1,12 @@
+# * Set this as storage class for redis cluster nodes
+# * Allows moving across regions
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: sc-redis
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+reclaimPolicy: Delete # maybe retain for prod
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
