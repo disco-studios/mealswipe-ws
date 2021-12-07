@@ -1,11 +1,11 @@
 name: kube-deploy
 
-on: [push]
-  # push:
-  #   branches:
-  #     - main
-  #   paths:
-  #     - "build/kubernetes/**"
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "build/kubernetes/**"
 
 jobs:
   build-proto:
