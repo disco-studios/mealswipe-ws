@@ -25,7 +25,7 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Test get pods
+    - name: Apply kubernetes
       run: |
         sudo apt-get install -y apt-transport-https ca-certificates curl
         sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
@@ -38,9 +38,9 @@ jobs:
         mkdir $HOME/.kube
         echo "${{ secrets.KUBE_CONFIG_DATA }}" > $HOME/.kube/config
 
-        echo "Running command!"
-        kubectl config view
-        kubectl get pods -A
+        echo "Running deploy!"
+        kubectl apply -f build/kubernetes
+        echo "Done!"
 
 
 
