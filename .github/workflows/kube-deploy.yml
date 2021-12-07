@@ -26,11 +26,14 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
       - name: Docker Build
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
+          ECR_REPOSITORY: disco-mealswipe
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Build a docker container and push it to ECR 
@@ -40,7 +43,7 @@ jobs:
         id: push-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: 850351896280.dkr.ecr.us-east-1.amazonaws.com/disco-mealswipe
+          ECR_REPOSITORY: disco-mealswipe
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
