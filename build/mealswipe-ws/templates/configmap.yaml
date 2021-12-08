@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mealswipe-ws.fullname" . }}
+  labels:
+    {{- include "mealswipe-ws.labels" . | nindent 4 }}
+data:
+  DISCO_LOGGER_APP: "ms-ws"
+  DISCO_LOGGER_NAMESPACE: "mealswipe"
+
+  MS_MAX_CODE_RETRIES: "6" # max retries to get unique code
+  MS_SESSION_CODE_CHARSET: "BCDFGHJKLMNPQRSTVWXYZ" # allowed chars in codes
+  MS_SESSION_CODE_LENGTH: "6" # how long to make the codes
+
+  MS_KEY_USER_SESSION: "session"
+  MS_KEY_SESSION_USERS: "users"
+  MS_KEY_SESSION_OWNER_ID: "owner_id"
+  MS_KEY_SESSION_GAME_STATE: "game_state"
+  MS_KEY_SESSION_LOCATIONS: "locations"
+  MS_KEY_SESSION_LOCATION_DISTANCES: "locations:distances"
+  MS_KEY_SESSION_VOTE_TALLY: "vote_tally"
+  MS_KEY_SESSION_USERS_ACTIVE: "users:active"
+  MS_KEY_SESSION_VOTEIND: "voteind"
+  MS_KEY_SESSION_USERS_NICKNAMES: "users:nicknames"
+  MS_KEY_USER_VOTES: "votes"
+  MS_PREFIX_LOC_API: "loc:api:"
+
+  MS_DISABLE_LOC_CACHING: "false" # disables saving to cache
+  MS_DISABLE_LOC_CACHE_READ: "false" # disables reading from cache
+  MS_HITS_BEFORE_FRESH: "4" # will show x cached locs before pulling fresh
+
+  MS_APM_TRACE_REDIS: "true" # whether or not we should trace redis
+  MS_REDIS_CLUSTER_MODE: "false" # whether we are using redis cluster
+  MS_REDIS_ADDRESS: "ms-redis-service:6379" # in-cluster address for redis
+
+  # 4bf58dd8d48988d116941735 Bars
+  # 4bf58dd8d48988d16e941735 Fast Food
+  # 4bf58dd8d48988d1d0941735 Dessert
+  # 4bf58dd8d48988d1e0931735 Coffee
+  # 4bf58dd8d48988d143941735 Breakfast Spot
+  # 4bf58dd8d48988d142941735 Asian
+  # 4bf58dd8d48988d1c1941735 Mexican
+  # 4bf58dd8d48988d14e941735 American
+  # 4bf58dd8d48988d110941735 Italian
+  # 4bf58dd8d48988d10e941735 Greek
+  # 4bf58dd8d48988d1ca941735 Pizza
+  # 4bf58dd8d48988d1d3941735 Vegetarian / Vegan
+  # 4d4b7105d754a06374d81259 Food
+  MS_ALLOWED_CATEGORIES: >-
+    ["4bf58dd8d48988d116941735",
+    "4bf58dd8d48988d16e941735",
+    "4bf58dd8d48988d1d0941735",
+    "4bf58dd8d48988d1e0931735",
+    "4bf58dd8d48988d143941735",
+    "4bf58dd8d48988d142941735",
+    "4bf58dd8d48988d1c1941735",
+    "4bf58dd8d48988d14e941735",
+    "4bf58dd8d48988d110941735",
+    "4bf58dd8d48988d10e941735",
+    "4bf58dd8d48988d1ca941735",
+    "4bf58dd8d48988d1d3941735",
+    "4d4b7105d754a06374d81259"]
