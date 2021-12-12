@@ -41,16 +41,23 @@ service:
   port: 8080
 
 ingress:
-  enabled: false
+  enabled: true
   className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600 # TODO This allows connections to idle 10 minutes. Remove after debugging
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:850351896280:certificate/7ac6a408-6906-4c42-af68-7c513bf22baf
+    kubernetes.io/ingress.class: alb
   hosts:
-    - host: chart-example.local
+    - host: prod1.mealswipe.app
       paths:
-        - path: /
-          pathType: ImplementationSpecific
+        - path: "/"
+          pathType: Exact
+          backend:
+            service:
+              name: ms-ws
+              port:
+                number: 8080
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -69,7 +76,7 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
 
