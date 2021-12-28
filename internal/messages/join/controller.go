@@ -95,16 +95,16 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessag
 	}
 
 	if joinMessage.Uuid != "" {
-		if !uuidRegex.Match([]byte(joinMessage.Uuid)) {
-			logging.MetricCtx(ctx, "bad_uuid").Info(
-				"invalid uuid given",
-				zap.String("uuid", joinMessage.Uuid),
-			)
-			return &mealswipe.MessageValidationError{
-				MessageType:   "join",
-				Clarification: "invalid uuid",
-			}
-		}
+		// if !uuidRegex.Match([]byte(joinMessage.Uuid)) {
+		// 	logging.MetricCtx(ctx, "bad_uuid").Info(
+		// 		"invalid uuid given",
+		// 		zap.String("uuid", joinMessage.Uuid),
+		// 	)
+		// 	return &mealswipe.MessageValidationError{
+		// 		MessageType:   "join",
+		// 		Clarification: "invalid uuid",
+		// 	}
+		// }
 	}
 
 	// Validate that this session actually exists
