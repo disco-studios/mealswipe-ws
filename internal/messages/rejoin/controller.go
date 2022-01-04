@@ -41,12 +41,12 @@ func HandleMessage(ctx context.Context, userState *types.UserState, rejoinMessag
 
 var AcceptibleHostStates_Join = []int16{mealswipe.HostState_UNIDENTIFIED}
 
-func ValidateMessage(ctx context.Context, userState *types.UserState, rejoinMessage *mealswipepb.RejoinMessage) (err error) {
+func ValidateMessage(ctx context.Context, userState *types.UserState, rejoinMessage *mealswipepb.RejoinMessage) (err error, ws_err *mealswipepb.ErrorMessage) {
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Join)
 	if err != nil {
 		err = fmt.Errorf("validate host state: %w", err)
-		return err
+		return err, nil
 	}
 
 	if rejoinMessage.UserId == "" {
@@ -55,9 +55,12 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, rejoinMess
 			logging.UserId(rejoinMessage.UserId),
 		)
 		return &mealswipe.MessageValidationError{
-			MessageType:   "rejoin",
-			Clarification: "invalid userid format",
-		}
+				MessageType:   "rejoin",
+				Clarification: "invalid userid format",
+			}, &mealswipepb.ErrorMessage{
+				ErrorType: mealswipepb.ErrorType_InvalidUserIdError,
+				Message:   "Must provide a user ID",
+			}
 	}
 
 	if rejoinMessage.SessionId == "" {
@@ -66,9 +69,12 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, rejoinMess
 			logging.SessionId(rejoinMessage.SessionId),
 		)
 		return &mealswipe.MessageValidationError{
-			MessageType:   "rejoin",
-			Clarification: "invalid sessionid format",
-		}
+				MessageType:   "rejoin",
+				Clarification: "invalid sessionid format",
+			}, &mealswipepb.ErrorMessage{
+				ErrorType: mealswipepb.ErrorType_InvalidSessionIdError,
+				Message:   "Invalid session ID format",
+			}
 	}
 
 	if !uuidRegex.Match([]byte(rejoinMessage.UserId)) {
@@ -77,9 +83,12 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, rejoinMess
 			zap.String("uuid", rejoinMessage.UserId),
 		)
 		return &mealswipe.MessageValidationError{
-			MessageType:   "rejoin",
-			Clarification: "invalid uuid",
-		}
+				MessageType:   "rejoin",
+				Clarification: "invalid uuid",
+			}, &mealswipepb.ErrorMessage{
+				ErrorType: mealswipepb.ErrorType_InvalidUserIdError,
+				Message:   "Invalid user ID format",
+			}
 	}
 
 	return

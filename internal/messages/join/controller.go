@@ -58,12 +58,12 @@ func HandleMessage(ctx context.Context, userState *types.UserState, joinMessage 
 
 var AcceptibleHostStates_Join = []int16{mealswipe.HostState_UNIDENTIFIED}
 
-func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error) {
+func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessage *mealswipepb.JoinMessage) (err error, ws_error *mealswipepb.ErrorMessage) {
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Join)
 	if err != nil {
 		err = fmt.Errorf("validate host state: %w", err)
-		return err
+		return err, nil
 	}
 
 	// Validate that code is valid format
@@ -73,25 +73,31 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessag
 			zap.String("code", joinMessage.Code),
 		)
 		return &mealswipe.MessageValidationError{
-			MessageType:   "join",
-			Clarification: "invalid code format",
-		}
+				MessageType:   "join",
+				Clarification: "invalid code format",
+			}, &mealswipepb.ErrorMessage{
+				ErrorType: mealswipepb.ErrorType_InvalidCodeError,
+				Message:   fmt.Sprintf("Could not find a code %s", joinMessage.Code),
+			}
 	}
 
 	// Validate nickname
 	nicknameValid, err := common.IsNicknameValid(joinMessage.Nickname)
 	if err != nil {
 		err = fmt.Errorf("validate nickname: %w", err)
-		return err
+		return err, nil
 	} else if !nicknameValid {
 		logging.MetricCtx(ctx, "bad_nickname").Info(
 			"invalid nickname given",
 			zap.String("nickname", joinMessage.Nickname),
 		)
 		return &mealswipe.MessageValidationError{
-			MessageType:   "join",
-			Clarification: "invalid nickname",
-		}
+				MessageType:   "join",
+				Clarification: "invalid nickname",
+			}, &mealswipepb.ErrorMessage{
+				ErrorType: mealswipepb.ErrorType_InvalidNicknameError,
+				Message:   "TODO: More info", // TODO More info
+			}
 	}
 
 	if joinMessage.Uuid != "" {
@@ -111,7 +117,7 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, joinMessag
 	sessionId, err := sessions.GetIdFromCode(ctx, joinMessage.Code)
 	if err != nil || sessionId == "" {
 		err = fmt.Errorf("get session id from code: %w", err)
-		return err
+		return err, nil
 	}
 
 	return

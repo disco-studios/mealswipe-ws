@@ -141,21 +141,37 @@ func readPump(userState *types.UserState, connection *websocket.Conn) {
 		// defer tx.End()
 		// ctx = apm.ContextWithTransaction(ctx, tx)
 
-		err = messages.ValidateMessage(userState, genericMessage)
-		if err != nil {
+		err, ws_err := messages.ValidateMessage(userState, genericMessage)
+		if err != nil || ws_err != nil {
 			logging.MetricCtx(ctx, "message_validation_failed").Info(
 				"failed to validate message",
 				zap.Any("raw", genericMessage),
 				zap.Error(err),
 			)
-			return
+			if ws_err != nil {
+				userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
+					ErrorMessage: ws_err,
+				})
+			} else {
+				userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
+					ErrorMessage: &mealswipepb.ErrorMessage{
+						ErrorType: mealswipepb.ErrorType_UnhandledError,
+						Message:   "Unhandled validation error",
+					},
+				})
+			}
 		}
 
 		err = messages.HandleMessage(ctx, userState, genericMessage)
 		if err != nil {
 			// TODO Don't always die when we have an error, just sometimes
 			logging.Ctx(ctx).Error("message handler encountered error", zap.Error(err), zap.Any("raw", genericMessage))
-			return
+			userState.SendWebsocketMessage(&mealswipepb.WebsocketResponse{
+				ErrorMessage: &mealswipepb.ErrorMessage{
+					ErrorType: mealswipepb.ErrorType_UnhandledError,
+					Message:   "Unhandled logic error",
+				},
+			})
 		}
 
 		// TODO Close socket cleanly when we fail

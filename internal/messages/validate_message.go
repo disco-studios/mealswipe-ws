@@ -15,7 +15,7 @@ import (
 )
 
 // TODO Check for empty states
-func ValidateMessage(userState *types.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error) {
+func ValidateMessage(userState *types.UserState, genericMessage *mealswipepb.WebsocketMessage) (err error, ws_err *mealswipepb.ErrorMessage) {
 	if common.HasCreateMessage(genericMessage) {
 		return create.ValidateMessage(context.TODO(), userState, genericMessage.GetCreateMessage())
 	} else if common.HasJoinMessage(genericMessage) {
@@ -27,6 +27,6 @@ func ValidateMessage(userState *types.UserState, genericMessage *mealswipepb.Web
 	} else if common.HasRejoinMessage(genericMessage) {
 		return rejoin.ValidateMessage(context.TODO(), userState, genericMessage.GetRejoinMessage())
 	} else {
-		return &mealswipe.UnknownWebsocketMessage{}
+		return &mealswipe.UnknownWebsocketMessage{}, nil
 	}
 }

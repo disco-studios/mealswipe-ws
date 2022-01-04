@@ -32,7 +32,7 @@ func HandleMessage(ctx context.Context, userState *types.UserState, startMessage
 	return
 }
 
-func ValidateMessage(ctx context.Context, userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error) {
+func ValidateMessage(ctx context.Context, userState *types.UserState, startMessage *mealswipepb.StartMessage) (err error, ws_error *mealswipepb.ErrorMessage) {
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Start)
 	if err != nil {
@@ -51,9 +51,12 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, startMessa
 	}
 	if !radiusValid {
 		return &mealswipe.MessageValidationError{
-			MessageType:   "start",
-			Clarification: "invalid radius",
-		}
+				MessageType:   "start",
+				Clarification: "invalid radius",
+			}, &mealswipepb.ErrorMessage{
+				ErrorType: mealswipepb.ErrorType_InvalidRadiusError,
+				Message:   "Invalid radius. Must be > 0.5m",
+			}
 	}
 
 	latLonValid := false
@@ -67,9 +70,12 @@ func ValidateMessage(ctx context.Context, userState *types.UserState, startMessa
 			zap.Float64("lng", startMessage.Lng),
 		)
 		return &mealswipe.MessageValidationError{
-			MessageType:   "start",
-			Clarification: "invalid lat lng",
-		}
+				MessageType:   "start",
+				Clarification: "invalid lat lng",
+			}, &mealswipepb.ErrorMessage{
+				ErrorType: mealswipepb.ErrorType_InvalidLatLngError,
+				Message:   "Invalid lat/lng. Must be in US.",
+			}
 	}
 
 	// sessionId, err := sessions.GetIdFromCode(ctx, userState.JoinedSessionCode)

@@ -48,27 +48,30 @@ func HandleMessage(ctx context.Context, userState *types.UserState, createMessag
 	return
 }
 
-func ValidateMessage(ctx context.Context, userState *types.UserState, createMessage *mealswipepb.CreateMessage) (err error) {
+func ValidateMessage(ctx context.Context, userState *types.UserState, createMessage *mealswipepb.CreateMessage) (err error, ws_error *mealswipepb.ErrorMessage) {
 	// Validate that the user is in a state that can do this action
 	err = common.ValidateHostState(userState, AcceptibleHostStates_Create)
 	if err != nil {
 		err = fmt.Errorf("validate host state: %w", err)
-		return err
+		return err, nil
 	}
 
 	nicknameValid, err := common.IsNicknameValid(createMessage.Nickname)
 	if err != nil {
 		err = fmt.Errorf("validate nickname: %w", err)
-		return err
+		return err, nil
 	} else if !nicknameValid {
 		logging.MetricCtx(ctx, "bad_nickname").Info(
 			fmt.Sprintf("gave bad nickname %s", createMessage.Nickname),
 			zap.String("nickname", createMessage.Nickname),
 		)
 		return &mealswipe.MessageValidationError{
-			MessageType:   "create",
-			Clarification: "invalid nickname",
-		}
+				MessageType:   "create",
+				Clarification: "invalid nickname",
+			}, &mealswipepb.ErrorMessage{
+				ErrorType: mealswipepb.ErrorType_InvalidNicknameError,
+				Message:   "TODO: More info", // TODO More info
+			}
 	}
 
 	return
