@@ -160,6 +160,7 @@ func readPump(userState *types.UserState, connection *websocket.Conn) {
 					},
 				})
 			}
+			continue
 		}
 
 		err = messages.HandleMessage(ctx, userState, genericMessage)
